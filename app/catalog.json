@@ -1,0 +1,262 @@
+{
+  "updated": "2026-09-06",
+  "notice": "来源为 LA VPS 补货监控会话及公开商家页面。价格是参考信息，不是实时报价。预设加入后默认暂停，试运行并核对检测范围后启用。历史特价未核实购买地址时保留为空。",
+  "providers": [
+    {
+      "name": "DMIT",
+      "url": "https://www.dmit.io/",
+      "directory": "https://www.dmit.io/cart.php",
+      "kind": "WHMCS",
+      "note": "Premium 与 EB、Tier 1 是不同产品线；活动型号不能用同名常规套餐替代。"
+    },
+    {
+      "name": "VMISS",
+      "url": "https://www.vmiss.com/",
+      "directory": "https://app.vmiss.com/store/us-los-angeles-tri",
+      "kind": "WHMCS",
+      "note": "支持读取产品目录提取 PID。403 或验证页会记为异常，不推测库存。"
+    },
+    {
+      "name": "VMRack",
+      "url": "https://www.vmrack.net/",
+      "directory": "https://www.vmrack.net/pricing",
+      "kind": "HTML",
+      "note": "按价格表中完整产品名定位单行，缺货标记优先于 Buy now。"
+    },
+    {
+      "name": "BandwagonHost",
+      "url": "https://bandwagonhost.com/",
+      "directory": "https://bandwagonhost.com/cart.php",
+      "kind": "WHMCS",
+      "note": "MegaBOX / MiniBOX 属历史活动；需要当前活动商品的真实 PID。"
+    },
+    {
+      "name": "ZgoCloud",
+      "url": "https://clients.zgovps.com/",
+      "directory": "https://clients.zgovps.com/",
+      "kind": "HTML / JSON",
+      "note": "HostBill 产品页需精确选中套餐区域，勿将整个目录的 Continue 按钮视为目标产品有货。"
+    },
+    {
+      "name": "VIRCS",
+      "url": "https://vircs.com/",
+      "directory": "",
+      "kind": "待核实",
+      "note": "2026-09-06 原域名跳转到 NodeMach 公告页；需确认新商家与产品地址。"
+    },
+    {
+      "name": "DigitalFyre",
+      "url": "https://www.digitalfyre.com/",
+      "directory": "https://www.digitalfyre.com/vps/",
+      "kind": "HTML / JSON",
+      "note": "会话里的 LA 8C8G $10 是历史活动；当前常规 VPS-M8 不能当作该特价。"
+    }
+  ],
+  "presets": [
+    {
+      "id": "vmiss-tri-basic",
+      "label": "TRI · 首选入门",
+      "readiness": "需核对规则",
+      "config": {
+        "provider": "VMISS",
+        "name": "US.LA.TRI.Basic",
+        "url": "https://app.vmiss.com/store/us-los-angeles-tri",
+        "adapter": "whmcs",
+        "selector": ".product",
+        "product_match": "US.LA.TRI.Basic",
+        "expected_text": "US.LA.TRI.Basic",
+        "in_stock": ["Order Now", "立即订购"],
+        "out_of_stock": [
+          "Out of Stock",
+          "Sold Out",
+          "缺货",
+          "售罄",
+          "0 Available"
+        ],
+        "specs": "1 vCPU · 1 GB · 10 GB SSD · 500 GB/月 · 200 Mbps · 1 IPv4",
+        "price_note": "5 CAD/月（公开目录参考）",
+        "notes": "自动在目录中匹配产品名，提取 PID，再检查对应产品配置页面。Order Now 按钮本身不视为有货。"
+      }
+    },
+    {
+      "id": "vmiss-tri-core",
+      "label": "TRI · 流量加量",
+      "readiness": "需核对规则",
+      "config": {
+        "provider": "VMISS",
+        "name": "US.LA.TRI.Core",
+        "url": "https://app.vmiss.com/store/us-los-angeles-tri",
+        "adapter": "whmcs",
+        "selector": ".product",
+        "product_match": "US.LA.TRI.Core",
+        "expected_text": "US.LA.TRI.Core",
+        "in_stock": ["Order Now", "立即订购"],
+        "out_of_stock": [
+          "Out of Stock",
+          "Sold Out",
+          "缺货",
+          "售罄",
+          "0 Available"
+        ],
+        "specs": "1 vCPU · 2 GB · 15 GB SSD · 1 TB/月 · 200 Mbps · 1 IPv4",
+        "price_note": "10 CAD/月（公开目录参考）",
+        "notes": "自动在目录中匹配产品名，提取 PID，再检查对应产品配置页面。Order Now 按钮本身不视为有货。"
+      }
+    },
+    {
+      "id": "vmiss-tri-dc2-basic",
+      "label": "TRI DC2 · 会话重点",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "VMISS",
+        "name": "US.LA.TRI.DC2.Basic",
+        "adapter": "whmcs",
+        "expected_text": "US.LA.TRI.DC2.Basic",
+        "specs": "1 vCPU · 1 GB · 400 GB/月 · 200 Mbps（会话记录，待官网复核）",
+        "price_note": "5 CAD/月（会话参考）",
+        "notes": "在 VMISS 的 US - LosAngeles - TRI #DC2 目录获取最新购买链接。"
+      }
+    },
+    {
+      "id": "vmiss-tri-dc2-core",
+      "label": "TRI DC2 · 备选",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "VMISS",
+        "name": "US.LA.TRI.DC2.Core",
+        "adapter": "whmcs",
+        "expected_text": "US.LA.TRI.DC2.Core",
+        "price_note": "10 CAD/月（会话参考）",
+        "notes": "不同机房的规格可能不同，请从官网录入当前配置和 PID。"
+      }
+    },
+    {
+      "id": "vmrack-l3-base",
+      "label": "L3 · 三网精品",
+      "readiness": "需试运行",
+      "config": {
+        "provider": "VMRack",
+        "name": "L3.VPS.DC2.2C2G.Base",
+        "url": "https://www.vmrack.net/pricing",
+        "purchase_url": "https://www.vmrack.net/vps",
+        "adapter": "html",
+        "selector": "tr",
+        "product_match": "L3.VPS.DC2.2C2G.Base",
+        "expected_text": "L3.VPS.DC2.2C2G.Base",
+        "in_stock": ["Buy now"],
+        "out_of_stock": ["Sold Out", "Out of Stock", "售罄"],
+        "specs": "2 vCPU · 2 GB · 20 GB · 1 TB/月 · 500 Mbps · 1 IPv4",
+        "price_note": "9.99 USD/月（公开定价）",
+        "notes": "匹配价格表中的单一机型行。Sold Out 优先，即使同行仍有 Buy now 也判断为缺货。"
+      }
+    },
+    {
+      "id": "dmit-pro-wee",
+      "label": "Premium · 历史特价",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "DMIT",
+        "name": "LAX.Pro.WEE",
+        "adapter": "whmcs",
+        "expected_text": "LAX.Pro.WEE",
+        "price_note": "39.90 USD/年（历史活动参考）",
+        "notes": "不能用 LAX.AS3.T1.WEE 替代；Tier 1 与 Premium 线路不同。活动链接未核实，请填写真实 PID。"
+      }
+    },
+    {
+      "id": "dmit-eb-corona",
+      "label": "EB · 历史特价",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "DMIT",
+        "name": "LAX.EB.CORONA",
+        "adapter": "whmcs",
+        "expected_text": "LAX.EB.CORONA",
+        "price_note": "49.90 USD/年（历史活动参考）",
+        "notes": "配置与优惠条件以本轮活动页为准。"
+      }
+    },
+    {
+      "id": "dmit-as3-tiny",
+      "label": "Premium · 常规候选",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "DMIT",
+        "name": "LAX.AS3.Pro.TINY",
+        "adapter": "whmcs",
+        "expected_text": "LAX.AS3.Pro.TINY",
+        "specs": "1 vCPU · 2 GB · 20 GB SSD（会话参考）",
+        "price_note": "10.90 USD/月（会话参考，高于 10 美元目标）",
+        "notes": "从官网读取该型号产品 PID；这里保留原币种报价，不进行未经核实的汇率转换。"
+      }
+    },
+    {
+      "id": "bwh-megabox",
+      "label": "MegaBOX · 历史特价",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "BandwagonHost",
+        "name": "MegaBOX Pro",
+        "adapter": "whmcs",
+        "expected_text": "MegaBOX",
+        "price_note": "约 45–49 USD/年（历史活动参考）",
+        "notes": "待当前官方活动链接。不同批次的配置和可迁移机房可能不同。"
+      }
+    },
+    {
+      "id": "bwh-minibox",
+      "label": "MiniBOX · 历史特价",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "BandwagonHost",
+        "name": "MiniBOX",
+        "adapter": "whmcs",
+        "expected_text": "MiniBOX",
+        "price_note": "约 27–29 USD/年（历史活动参考）",
+        "notes": "待当前官方活动链接，不使用正价 E-Commerce 库存代替。"
+      }
+    },
+    {
+      "id": "zgo-la-premium",
+      "label": "洛杉矶 · 三网优化",
+      "readiness": "待填写规则",
+      "config": {
+        "provider": "ZgoCloud",
+        "name": "Los Angeles AMD Optimised · 1G",
+        "purchase_url": "https://clients.zgovps.com/",
+        "adapter": "html",
+        "specs": "1 vCPU · 1 GB · 10 GB · 500 GB/月 · 200 Mbps（会话参考）",
+        "price_note": "52 USD/年（会话参考）",
+        "in_stock": ["Continue"],
+        "out_of_stock": ["Out of stock!", "Sold Out", "缺货"],
+        "notes": "从 HostBill 目录选择 Los Angeles AMD Optimised VPS，填写该套餐 URL 与单卡片选择器，或使用公开 JSON 库存字段。"
+      }
+    },
+    {
+      "id": "vircs-gia-lite",
+      "label": "CN2 GIA · 待核实",
+      "readiness": "商家地址变更",
+      "config": {
+        "provider": "VIRCS",
+        "name": "CN2 GIA Lite",
+        "adapter": "html",
+        "specs": "1 vCPU · 2 GB · 20 GB NVMe · 1 TB/月 · 1 Gbps（会话截图记录）",
+        "price_note": "9.99 USD/月（会话参考）",
+        "notes": "原域名跳转，当前产品地址与三网线路尚未核实。此型号不能自动视为家宽 IP 产品。"
+      }
+    },
+    {
+      "id": "digitalfyre-8c8g",
+      "label": "LA 性能机 · 历史活动",
+      "readiness": "待填写地址",
+      "config": {
+        "provider": "DigitalFyre",
+        "name": "LA Ryzen 9950X 8C8G 活动",
+        "adapter": "html",
+        "specs": "8 vCPU · 8 GB · 8 TB/月 · 10 Gbps（会话参考）",
+        "price_note": "10 USD/月（历史活动参考）",
+        "notes": "历史活动可能需工单咨询；与常规 VPS-M8 不同，不声称大陆三网精品。"
+      }
+    }
+  ]
+}

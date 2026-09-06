@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0c141c" />
+    <meta name="description" content="自部署 VPS 补货监控与邮件通知控制台" />
+    <title>VPS Radar · 补货雷达</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <section id="login-screen" class="login-screen">
+      <div class="login-brand">
+        <div class="radar-art" aria-hidden="true">
+          <i></i><i></i><i></i><b></b>
+        </div>
+        <span class="eyebrow">YOUR NEXT VPS, ON THE RADAR</span>
+        <h1>好机器，<br />不错过。</h1>
+        <p>把等待交给补货雷达。<br />关注的机型有货时，第一时间知晓。</p>
+        <span class="login-foot">VPS RADAR / 自部署监控台</span>
+      </div>
+      <form id="login-form" class="login-card">
+        <div class="brand"><span class="brand-icon">◎</span> VPS Radar</div>
+        <h2>登录控制台</h2>
+        <p class="muted">查看库存动态，管理你的关注列表。</p>
+        <label
+          >管理员密码<input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            autofocus /></label
+        ><button class="primary" type="submit">
+          进入控制台 <span>→</span>
+        </button>
+        <p id="login-error" class="error" role="alert"></p>
+        <p class="help">
+          初始密码见服务器 <code>.env</code>；直接运行时见
+          <code>data/initial-password.txt</code>。
+        </p>
+      </form>
+    </section>
+    <div id="app" class="shell" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="#overview"
+          ><span class="brand-icon">◎</span> VPS Radar<span class="brand-sub"
+            >补货雷达</span
+          ></a
+        >
+        <div class="nav-label">工作空间</div>
+        <nav aria-label="主导航">
+          <button data-view="overview" class="nav-item active">
+            <span>▦</span>监控总览</button
+          ><button data-view="catalog" class="nav-item">
+            <span>◈</span>商家与机型</button
+          ><button data-view="notifications" class="nav-item">
+            <span>♧</span>通知记录</button
+          ><button data-view="settings" class="nav-item">
+            <span>⚙</span>通知与设置
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="service">
+            <span class="dot" id="service-dot"></span
+            ><span id="service-text">正在连接</span>
+          </div>
+          <p>SELF-HOSTED · v1.0</p>
+          <button id="logout" class="text-button">退出登录 ↗</button>
+        </div>
+      </aside>
+      <main>
+        <header class="topbar">
+          <span id="breadcrumb">工作空间 <b>/</b> 监控总览</span>
+          <div>
+            <span class="timezone">Asia/Shanghai</span
+            ><span class="avatar">管</span>
+          </div>
+        </header>
+        <div class="workspace">
+          <div id="connection-error" class="notice danger" hidden></div>
+          <section id="view-overview" class="view">
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">INVENTORY OVERVIEW</div>
+                <h1>
+                  监控总览
+                  <span id="total-label" class="count-label">0 台</span>
+                </h1>
+                <p>关注每一次补货，把心仪的机器留在视野里。</p>
+              </div>
+              <div class="actions">
+                <button id="refresh" class="secondary">↻ 刷新状态</button
+                ><button data-action="new-monitor" class="primary">
+                  ＋ 添加监控
+                </button>
+              </div>
+            </div>
+            <div id="summary" class="summary"></div>
+            <div id="mail-banner" class="notice" hidden>
+              <span
+                >✉ 邮件通知尚未启用。配置 SMTP
+                后，确认补货会自动发送到你的邮箱。</span
+              ><button data-view="settings" class="text-button">
+                去配置 →
+              </button>
+            </div>
+            <div class="monitor-layout">
+              <section class="panel monitor-panel">
+                <div class="panel-heading">
+                  <h2>我的监控</h2>
+                  <span id="last-updated" class="muted small">正在同步</span>
+                </div>
+                <div class="filters">
+                  <label class="search"
+                    ><span>⌕</span
+                    ><input
+                      id="search"
+                      placeholder="搜索型号、商家或线路"
+                      aria-label="搜索监控" /></label
+                  ><select id="provider-filter" aria-label="商家筛选">
+                    <option value="">全部商家</option></select
+                  ><select id="status-filter" aria-label="状态筛选">
+                    <option value="">全部状态</option>
+                    <option value="in_stock">有货</option>
+                    <option value="out_of_stock">缺货</option>
+                    <option value="unknown">未知</option>
+                    <option value="error">检测失败</option>
+                    <option value="paused">已暂停</option>
+                  </select>
+                </div>
+                <div id="monitor-list"></div>
+                <div class="panel-footer">
+                  <span id="result-count">0 个监控</span
+                  ><span>面板每 15 秒刷新 · 检测按各机型间隔执行</span>
+                </div>
+              </section>
+              <aside class="activity-column">
+                <section class="panel">
+                  <div class="panel-heading">
+                    <h2>最近动态</h2>
+                    <span class="live-label">LIVE</span>
+                  </div>
+                  <div id="events" class="events"></div>
+                </section>
+                <section class="panel health-panel">
+                  <div class="panel-heading">
+                    <h2>检测健康度</h2>
+                    <span class="muted small">24 小时</span>
+                  </div>
+                  <div class="health-value" id="health-value">—</div>
+                  <p class="muted small">成功识别库存的检查占比</p>
+                  <div
+                    id="health-chart"
+                    class="health-chart"
+                    aria-label="最近24小时检测成功率"
+                  ></div>
+                  <div class="chart-labels">
+                    <span>24 小时前</span><span>现在</span>
+                  </div>
+                </section>
+                <div class="side-note">
+                  <span>↗</span>
+                  <p>
+                    库存由商家页面提供。收到通知后，价格和最终库存以结账页为准。
+                  </p>
+                </div>
+              </aside>
+            </div>
+          </section>
+          <section id="view-catalog" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">PROVIDERS & PLANS</div>
+                <h1>商家与机型</h1>
+                <p>从会话中的候选开始，也可以添加任何商家的公开产品页。</p>
+              </div>
+              <button data-action="new-monitor" class="primary">
+                ＋ 自定义监控
+              </button>
+            </div>
+            <div id="catalog-notice" class="notice"></div>
+            <div id="catalog-filters" class="chips"></div>
+            <div id="catalog-grid" class="catalog-grid"></div>
+            <section class="panel discover-panel">
+              <h2>从 WHMCS 目录读取机型</h2>
+              <p class="muted">
+                粘贴官方产品目录地址，提取名称和商品
+                PID。读取后选择机型、试运行，再开启监控。
+              </p>
+              <form id="discover-form" class="inline-form">
+                <label class="grow"
+                  ><span class="sr-only">目录地址</span
+                  ><input
+                    name="url"
+                    type="url"
+                    required
+                    placeholder="https://app.vmiss.com/store/us-los-angeles-tri" /></label
+                ><button class="secondary" type="submit">读取目录</button>
+              </form>
+              <div id="discovered"></div>
+            </section>
+          </section>
+          <section id="view-notifications" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">DELIVERY LOG</div>
+                <h1>通知记录</h1>
+                <p>补货邮件的排队、重试与投递结果，都在这里。</p>
+              </div>
+              <button id="refresh-notifications" class="secondary">
+                ↻ 刷新记录
+              </button>
+            </div>
+            <div class="panel" id="notification-list"></div>
+          </section>
+          <section id="view-settings" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">PREFERENCES</div>
+                <h1>通知与设置</h1>
+                <p>让补货提醒到达你每天查看的邮箱。</p>
+              </div>
+            </div>
+            <div class="settings-layout">
+              <form id="mail-form" class="panel settings-card">
+                <h2>邮件通知</h2>
+                <label class="switch-row"
+                  ><span>启用 SMTP 邮件通知</span
+                  ><input name="enabled" type="checkbox"
+                /></label>
+                <div class="form-grid">
+                  <label
+                    >SMTP 服务器<input
+                      name="host"
+                      placeholder="smtp.example.com"
+                      maxlength="253" /></label
+                  ><label
+                    >端口<input
+                      name="port"
+                      type="number"
+                      min="1"
+                      max="65535"
+                      value="587" /></label
+                  ><label
+                    >加密方式<select name="security">
+                      <option value="starttls">STARTTLS（通常 587）</option>
+                      <option value="ssl">SSL / TLS（通常 465）</option>
+                    </select></label
+                  ><label
+                    >登录账号<input name="username" autocomplete="off" /></label
+                  ><label class="full"
+                    >密码 / 邮箱授权码<input
+                      name="password"
+                      type="password"
+                      autocomplete="new-password"
+                      placeholder="留空保留已保存的密码" /></label
+                  ><label class="full"
+                    >发件人邮箱<input
+                      name="sender"
+                      type="email"
+                      placeholder="radar@example.com" /></label
+                  ><label class="full"
+                    >接收邮箱（每行一个）<textarea
+                      name="recipients"
+                      rows="3"
+                      placeholder="you@example.com"
+                    ></textarea>
+                  </label>
+                </div>
+                <div class="actions">
+                  <button class="primary" type="submit">保存设置</button
+                  ><button id="test-mail" class="secondary" type="button">
+                    发送测试邮件
+                  </button>
+                </div>
+                <p class="help">
+                  测试邮件使用已保存的配置。密码加密存储；失败自动重试，最多 5
+                  次。
+                </p>
+              </form>
+              <div>
+                <section class="panel settings-card">
+                  <h2>监控配置备份</h2>
+                  <p class="muted">
+                    导出商家、机型和规则；不包含邮件密码及登录凭据。导入后默认暂停。
+                  </p>
+                  <div class="actions">
+                    <button id="export" class="secondary">↓ 导出 JSON</button
+                    ><label class="secondary file-button"
+                      >↑ 导入 JSON<input
+                        id="import"
+                        type="file"
+                        accept="application/json,.json"
+                        class="sr-only"
+                    /></label>
+                  </div>
+                </section>
+                <form id="password-form" class="panel settings-card">
+                  <h2>管理员密码</h2>
+                  <label
+                    >当前密码<input
+                      name="current_password"
+                      type="password"
+                      required
+                      autocomplete="current-password" /></label
+                  ><label
+                    >新密码<input
+                      name="new_password"
+                      type="password"
+                      required
+                      minlength="12"
+                      maxlength="500"
+                      autocomplete="new-password"
+                  /></label>
+                  <p class="help">至少 12 个字符，修改后所有会话需重新登录。</p>
+                  <button class="secondary" type="submit">更新密码</button>
+                </form>
+                <section class="settings-note">
+                  <h3>监控策略</h3>
+                  <p>
+                    默认每 120 秒检查，连续 2
+                    次确认后记录库存变化。异常自动延长间隔，最多 1
+                    小时；同站点至少间隔 5 秒。
+                  </p>
+                  <p>
+                    检查记录保留 7 天，库存变更及通知保留 90
+                    天。服务独立运行，不需要保持此页面打开。
+                  </p>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+        <footer>
+          VPS RADAR <span>持续关注，及时发现。</span
+          ><span>所有时间以北京时间显示</span>
+        </footer>
+      </main>
+    </div>
+    <dialog id="monitor-dialog">
+      <form id="monitor-form">
+        <div class="dialog-header">
+          <div>
+            <span class="eyebrow">MONITOR CONFIGURATION</span>
+            <h2 id="monitor-dialog-title">添加监控</h2>
+          </div>
+          <button
+            type="button"
+            class="icon-button"
+            data-close="monitor-dialog"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-body">
+          <div class="form-grid">
+            <label
+              >商家<input
+                name="provider"
+                list="provider-options"
+                required
+                maxlength="80" /><datalist
+                id="provider-options"
+              ></datalist></label
+            ><label
+              >机型名称<input name="name" required maxlength="160" /></label
+            ><label class="full"
+              >检测地址<input
+                name="url"
+                type="url"
+                placeholder="完整产品页面或公开库存接口地址" /></label
+            ><label class="full"
+              >购买地址（选填）<input
+                name="purchase_url"
+                type="url"
+                placeholder="留空使用检测地址" /></label
+            ><label
+              >检测方式<select name="adapter">
+                <option value="html">HTML · 精确产品区域</option>
+                <option value="whmcs">WHMCS · 产品配置页</option>
+                <option value="json">JSON · 库存字段</option>
+              </select></label
+            ><label
+              >检查间隔（秒）<input
+                name="interval"
+                type="number"
+                min="30"
+                max="86400"
+                required /></label
+            ><label
+              >连续确认次数<input
+                name="confirmations"
+                type="number"
+                min="1"
+                max="5"
+                required /></label
+            ><label>机房 / 地区<input name="region" maxlength="100" /></label
+            ><label class="full"
+              >配置详情<input
+                name="specs"
+                maxlength="800"
+                placeholder="2 vCPU · 2 GB · 20 GB SSD · 1 TB/月" /></label
+            ><label class="full"
+              >价格参考<input
+                name="price_note"
+                maxlength="160"
+                placeholder="9.99 USD/月；展示用，不参与库存判断"
+            /></label>
+          </div>
+          <details open class="rules">
+            <summary>库存判断规则</summary>
+            <p id="adapter-help" class="help"></p>
+            <div class="form-grid">
+              <label data-field="html" class="full"
+                >产品区域 CSS 选择器<input
+                  name="selector"
+                  maxlength="300"
+                  placeholder="tr 或 .product 或 #product123" /></label
+              ><label data-field="html" class="full"
+                >在上述区域中包含的产品名<input
+                  name="product_match"
+                  maxlength="160"
+                  placeholder="必须筛选出唯一一个产品区域" /></label
+              ><label class="full" data-field="html whmcs"
+                >预期产品文字<input
+                  name="expected_text"
+                  maxlength="160"
+                  placeholder="防止下架后跳转到其他机型" /></label
+              ><label data-field="json" class="full"
+                >JSON 字段路径<input
+                  name="json_path"
+                  maxlength="200"
+                  placeholder="data.products.0.stock" /></label
+              ><label
+                >有货标记（每行一个）<textarea
+                  name="in_stock"
+                  rows="3"
+                  required
+                ></textarea></label
+              ><label
+                >缺货标记（每行一个）<textarea
+                  name="out_of_stock"
+                  rows="3"
+                  required
+                ></textarea>
+              </label>
+            </div>
+          </details>
+          <label
+            >备注<textarea name="notes" rows="2" maxlength="1500"></textarea>
+          </label>
+          <div class="check-options">
+            <label><input name="enabled" type="checkbox" /> 启用监控</label
+            ><label
+              ><input name="notify" type="checkbox" /> 补货时发送邮件</label
+            ><label
+              ><input name="notify_initial" type="checkbox" />
+              首次确认有货也通知</label
+            >
+          </div>
+          <p class="help">
+            未勾选首次通知时，只在“已确认缺货 →
+            已确认有货”后发送邮件。试运行不修改状态、不发送邮件。
+          </p>
+          <div id="probe-result" class="notice" hidden></div>
+          <p id="monitor-error" class="error" role="alert"></p>
+        </div>
+        <div class="dialog-footer">
+          <button id="probe" class="secondary" type="button">
+            ◎ 试运行规则
+          </button>
+          <div class="actions">
+            <button type="button" class="secondary" data-close="monitor-dialog">
+              取消</button
+            ><button type="submit" class="primary">保存监控</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="history-dialog">
+      <div class="dialog-header">
+        <h2 id="history-title">检测历史</h2>
+        <button
+          class="icon-button"
+          data-close="history-dialog"
+          aria-label="关闭"
+        >
+          ×
+        </button>
+      </div>
+      <div id="history-list" class="dialog-body"></div>
+    </dialog>
+    <dialog id="confirm-dialog">
+      <div class="dialog-header"><h2>删除监控</h2></div>
+      <div class="dialog-body">
+        <p id="confirm-message"></p>
+        <p class="muted">该机型的检测记录将一并删除，库存变更记录保留。</p>
+      </div>
+      <div class="dialog-footer">
+        <button class="secondary" data-close="confirm-dialog">取消</button
+        ><button class="danger-button" id="confirm-delete">确认删除</button>
+      </div>
+    </dialog>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

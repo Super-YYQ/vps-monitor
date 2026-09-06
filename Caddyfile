@@ -1,0 +1,5 @@
+{$DOMAIN} {
+    reverse_proxy radar:8080
+    header Strict-Transport-Security "max-age=31536000"
+    encode gzip
+}
