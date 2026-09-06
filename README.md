@@ -1,214 +1,234 @@
 # VPS Radar · 补货雷达
 
-在自己的服务器上运行的 VPS 库存监控工具。中文面板管理商家、机型、检测规则和邮件通知；后台持续检查，关闭浏览器不影响监控。
+[![CI](https://github.com/Super-YYQ/vps-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/Super-YYQ/vps-monitor/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Docker Compose](https://img.shields.io/badge/Deploy-Docker_Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-采用 **Python 3.12 + FastAPI + SQLite + 原生 HTML/CSS/JavaScript**。无需 Redis、独立数据库或前端编译。Docker Compose 单服务启动，可选 Caddy 自动 HTTPS。
+**在自己的服务器上监控 VPS 补货，通过中文管理面板选择商家、配置规则，在确认补货时接收邮件提醒。**
 
-## 已实现
+后台独立运行，关闭浏览器不影响监控。使用 Python、FastAPI、SQLite 和原生 HTML/CSS/JavaScript，无需 Redis、独立数据库或前端构建服务。
 
-- **7 家商家、13 个机型预设**：DMIT、VMISS、VMRack、BandwagonHost、ZgoCloud、VIRCS、DigitalFyre。
-- **自由配置监控**：增删改商家/机型、地区、配置、价格备注、购买地址、检测间隔；搜索与状态筛选。
-- **3 类检测器**：WHMCS 商品配置页及目录、HTML 单产品区域、公开 JSON 库存字段。
-- **中文面板**：监控总览、最近库存变化、24 小时检测健康度、检测历史、邮件投递记录。
-- **SMTP 邮件**：STARTTLS / SSL、多收件人、测试邮件、加密保存授权码、持久化队列和失败重试。
-- **可靠调度**：连续确认、状态持久化、去重、失败退避、同站点串行、4 个并发检查、抖动错峰。
-- **自部署**：Docker、Compose、一键脚本、健康检查、自动重启、日志轮转、自动 HTTPS。
-- **管理功能**：管理员登录、修改密码、配置 JSON 导入导出、SQLite 一致性备份脚本。
+[快速开始](#快速开始) · [设置说明](docs/configuration.md) · [邮件通知](docs/email/README.md) · [部署运维](docs/deployment.md) · [问题反馈](https://github.com/Super-YYQ/vps-monitor/issues)
 
-## 一键部署
+## 目录
 
-将当前仓库复制或 clone 到 Linux 服务器，在仓库根目录运行：
+- [功能特性](#功能特性)
+- [快速开始](#快速开始)
+- [首次使用](#首次使用)
+- [邮件通知配置](#邮件通知配置)
+- [商家与机型](#商家与机型)
+- [工作方式](#工作方式)
+- [文档导航](#文档导航)
+- [本地开发](#本地开发)
+- [项目结构](#项目结构)
+- [已知限制](#已知限制)
+- [参与贡献](#参与贡献)
+- [参考项目与资料](#参考项目与资料)
+- [许可证](#许可证)
+
+## 功能特性
+
+| 功能         | 说明                                                         |
+| ------------ | ------------------------------------------------------------ |
+| 自定义监控   | 自由填写商家、型号、地区、检测地址、购买地址、价格与配置备注 |
+| 商家机型库   | 7 家商家、13 个候选预设；可编辑或自行添加任意公开产品页      |
+| 多种检测方式 | WHMCS 商品配置页 / 目录、HTML 单产品区域、JSON 库存字段      |
+| 中文管理面板 | 库存总览、搜索筛选、检查历史、库存变化、24 小时检测健康度    |
+| 邮件通知     | SMTP SSL / STARTTLS、多收件人、测试邮件、持久化重试队列      |
+| 稳定调度     | 连续确认、补货去重、异常退避、同站点串行和并发上限           |
+| 数据管理     | SQLite 持久化、JSON 配置导入导出、一致性备份脚本             |
+| 登录保护     | 管理员密码、会话与 CSRF 校验、SMTP 授权码加密存储            |
+| 自部署       | Docker Compose、一键安装脚本、可选 Caddy 自动 HTTPS          |
+
+## 快速开始
+
+### 方式一：Linux 服务器一键部署
+
+准备一个指向服务器的域名，并开放 TCP 80、443 端口。在服务器执行：
 
 ```bash
+git clone https://github.com/Super-YYQ/vps-monitor.git
+cd vps-monitor
 bash deploy.sh --domain radar.example.com
 ```
 
-把 `radar.example.com` 替换为你的域名，提前将 DNS 指向服务器并开放 TCP 80/443。脚本会在没有 Docker 时使用 Docker 官方安装程序安装 Docker，自动生成 `.env` 中的随机管理员密码，构建镜像并启动服务。安装 Docker 时需要 root 或 sudo 权限。已有 Docker 时支持带 Compose v2 的 Linux 主机；自动安装流程推荐用于 Docker 官方支持的 Debian / Ubuntu。
+将 `radar.example.com` 替换为自己的域名。脚本会生成随机管理员密码，构建镜像并启动服务；没有 Docker 时会调用官方安装程序，需要 root 或 sudo 权限。
 
-访问 `https://你的域名`。首次管理员密码在服务器仓库的 `.env` 中查看。后台修改密码后，`.env` 的初始密码不再生效。
+打开 `https://你的域名`，首次密码查看服务器仓库 `.env` 中的 `ADMIN_PASSWORD`。`.env` 只用于第一次初始化密码；在面板修改密码后，以新密码为准。
 
-没有域名也可以先运行：
+### 方式二：先通过 SSH 隧道体验
+
+没有域名时，在服务器项目根目录执行：
 
 ```bash
 bash deploy.sh
-# 在你自己的电脑建立隧道，然后访问 http://127.0.0.1:8080
+```
+
+在自己的电脑执行：
+
+```bash
 ssh -L 8080:127.0.0.1:8080 user@server
 ```
 
-默认只把应用端口绑定到服务器 `127.0.0.1`。需要交给已有 Nginx / Caddy 反向代理时，设置 `.env` 的 `APP_ORIGIN=https://你的域名` 和 `SECURE_COOKIES=true`，代理转发到 `127.0.0.1:8080`。`APP_ORIGIN` 必须与浏览器访问的协议、主机名、端口一致。
+访问 [本地控制台](http://127.0.0.1:8080/)。将 `user@server` 替换为自己的 SSH 登录信息；如果本机 8080 已被占用，可以使用 `-L 18080:127.0.0.1:8080` 并访问本机 18080。
 
-### 手动 Compose
+### 方式三：已有 Docker，手动启动
 
 ```bash
 cp .env.example .env
-# 编辑 .env，设置至少 12 字符的唯一 ADMIN_PASSWORD
-# 默认端口 8080；可以修改 PORT
+# 编辑 .env，替换 ADMIN_PASSWORD，占位密码不能用于启动
 
 docker compose up -d --build --wait
-# 可选：配置 DOMAIN、APP_ORIGIN、SECURE_COOKIES 后启用自动 HTTPS
-# docker compose --profile https up -d --build --wait
 ```
 
-数据保存在 `radar_data` 命名卷，重建镜像不丢失配置和历史。SMTP 通过面板设置，不写入镜像。
+默认只将服务映射到服务器 `127.0.0.1:8080`。反向代理、HTTPS、端口修改和备份方法见 [部署运维](docs/deployment.md)。
 
 ## 首次使用
 
-1. 登录，进入 **商家与机型**，选择候选或点击 **自定义监控**。
-2. 核对检测地址、产品名称和规则，点击 **试运行规则**。试运行不会改变库存状态或发信。
-3. 确认结果后勾选 **启用监控**。预设和导入配置默认暂停，避免把历史参考数据当成当前可购买产品。
-4. 在 **通知与设置** 保存 SMTP 配置并启用邮件。使用邮箱服务商提供的 SMTP 授权码，然后发送测试邮件，在 **通知记录** 查看投递结果。
-5. 默认只通知已确认的 **缺货 → 有货**。希望第一次检查就有货时也提醒，可在单机型设置中勾选 **首次确认有货也通知**。
+1. **登录控制台**，在“商家与机型”挑选候选，或点击“自定义监控”。
+2. **核对检测规则**：填写当前产品地址及产品名，点击“试运行规则”。试运行不会发信或修改监控状态。
+3. **开启监控**：保存前勾选“启用监控”。预设与导入配置默认暂停。
+4. **配置邮件**：在“通知与设置”填写 SMTP 参数，保存后发送测试邮件，在“通知记录”查看投递结果。
+5. **选择通知策略**：默认只在确认“缺货 → 有货”时通知；如需第一次确认有货也提醒，勾选该机型的“首次确认有货也通知”。
 
-面板每 15 秒同步一次；真正的库存检测默认每 120 秒执行。两者独立。价格是用户可编辑的展示备注，**不自动抓价、不换算汇率、不进行预算过滤**。这避免将历史促销价或 CAD 误当作当前 USD 月付价。
+每个字段的含义、默认值、限制与填写示例见 [完整设置说明](docs/configuration.md)。
 
-## 商家支持范围
+## 邮件通知配置
 
-| 商家          | 会话中的重点                                 | 当前接入方式                                                                                   |
-| ------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| VMISS         | US.LA.TRI Basic / Core，DC2 Basic / Core     | TRI 目录地址已配置；自动精确匹配产品名、提取 PID，再验证对应配置页。DC2 请填写当前目录或 PID。 |
-| VMRack        | L3.VPS.DC2.2C2G.Base                         | 官方 pricing 表按完整机型定位单行；缺货标记优先于同行 Buy now。                                |
-| DMIT          | LAX.Pro.WEE、LAX.EB.CORONA、LAX.AS3.Pro.TINY | WHMCS；需填当前官方产品 PID 或可解析目录，不猜活动链接。                                       |
-| BandwagonHost | MegaBOX Pro、MiniBOX                         | WHMCS；历史特价需要当前活动的商品 PID。                                                        |
-| ZgoCloud      | Los Angeles AMD Optimised 1G                 | HostBill HTML 单套餐区域或公开 JSON 字段；需要设置精确选择器。                                 |
-| VIRCS         | CN2 GIA Lite                                 | 原域名访问时跳转到 NodeMach 公告，预设保持未配置，待用户核实新地址。                           |
-| DigitalFyre   | LA 9950X 8C8G $10 历史活动                   | 活动地址需核实，支持 HTML / JSON；不能用常规 VPS-M8 库存替代。                                 |
+可用同一个邮箱发信和收信，也可以用 QQ 邮箱发信、Gmail 收信。发件邮箱需要开通 SMTP 并提供授权凭据，接收邮箱只填写地址。
 
-**预设代表候选及规则模板，不代表已验证所有商家能从你的服务器访问。** 开发时部分官方站点返回 403、TLS 证书错误或超时；程序保留证书验证，不绕过验证码。实际可用性取决于部署服务器的出口、商家防护和页面结构。未填地址、目录下架、JavaScript 页面、登录或人机验证都会返回未知/失败；不会据此发送补货通知。
+| 发件邮箱          | 单独配置指南                      | 服务器           | 本文档使用的组合  |
+| ----------------- | --------------------------------- | ---------------- | ----------------- |
+| QQ 个人邮箱       | [QQ 邮箱配置](docs/email/qq.md)   | `smtp.qq.com`    | `465` + SSL / TLS |
+| Gmail             | [Gmail 配置](docs/email/gmail.md) | `smtp.gmail.com` | `465` + SSL / TLS |
+| 网易 163 个人邮箱 | [163 邮箱配置](docs/email/163.md) | `smtp.163.com`   | `465` + SSL / TLS |
 
-## 如何配置检测规则
+各指南包含凭据获取方法、面板逐项填写示例和排错步骤。Gmail 需要账号允许使用应用专用密码；当前程序不支持 Google OAuth 登录。以上连接参数对应的官方资料见各指南。
 
-### WHMCS
+首次使用请先读 [邮件设置总说明](docs/email/README.md)。
 
-填写官方 `https://商家/cart.php?a=add&pid=实际编号` 和 **预期产品文字**。程序需要看到该产品名称和 `#frmConfigureProduct` 表单才确认有货。明确的缺货页面优先处理；跳转到其他 PID 或登录页不能视为有货。
+## 商家与机型
 
-也可填写 `.product` 卡片结构的 WHMCS 目录 URL，预期文字要和卡片标题精确一致。程序找到唯一名称后读取对应 PID 页面；两次请求间隔 5 秒。只有目录的 Order Now 按钮不会触发有货。如果模板不兼容，在 **从 WHMCS 目录读取机型** 中检查解析结果，或手动填写 PID。
+| 商家          | 候选机型                                     | 预设状态                             |
+| ------------- | -------------------------------------------- | ------------------------------------ |
+| VMISS         | US.LA.TRI Basic / Core；DC2 Basic / Core     | TRI 目录已配置；DC2 待填写当前地址   |
+| VMRack        | L3.VPS.DC2.2C2G.Base                         | 官方价格表规则已提供，需试运行       |
+| DMIT          | LAX.Pro.WEE、LAX.EB.CORONA、LAX.AS3.Pro.TINY | 待填写当前官方 PID 或目录            |
+| BandwagonHost | MegaBOX Pro、MiniBOX                         | 历史活动，待当前购买链接             |
+| ZgoCloud      | Los Angeles AMD Optimised 1G                 | 待填写精确产品区域或 JSON 字段       |
+| VIRCS         | CN2 GIA Lite                                 | 原地址发生跳转，需要核实当前产品地址 |
+| DigitalFyre   | LA Ryzen 9950X 8C8G 活动                     | 历史活动地址待核实                   |
 
-### HTML
+预设是候选及规则模板，**不是全部商家均已完成实网验证的承诺**。历史价格只供参考；不自动抓价、换算汇率、按预算筛选或代下单。
 
-以 VMRack 为例：
+## 工作方式
 
-```text
-检测地址：https://www.vmrack.net/pricing
-CSS 选择器：tr
-产品名筛选：L3.VPS.DC2.2C2G.Base
-预期产品文字：L3.VPS.DC2.2C2G.Base
-有货标记：Buy now
-缺货标记：Sold Out
+```mermaid
+flowchart LR
+    A[管理面板配置] --> B[(SQLite)]
+    B --> C[后台调度]
+    C --> D[读取公开页面或接口]
+    D --> E[连续确认库存]
+    E --> B
+    E --> F[补货事件与通知队列]
+    F --> G[SMTP 邮箱]
+    G --> H[接收提醒]
 ```
 
-规则必须只匹配一个区域。多个区域或零个区域均返回未知。负面标记优先；比如同一行既有 Sold Out 又有 Buy now，结果是缺货。移除 script、style、template、hidden 等非可见节点后进行文本判断。程序不运行浏览器 CSS/JS，因此使用行内 CSS 隐藏内容的特殊站点需要另选更精确区域或 JSON 接口。
+默认每 120 秒检查一次、连续 2 次确认；面板每 15 秒刷新。网络异常、人机验证、产品区域不唯一时显示“未知 / 检测失败”，不当作补货。重启保留已确认状态和通知队列。
 
-### JSON
+## 文档导航
 
-```json
-{
-  "provider": "Example",
-  "name": "LAX Basic",
-  "url": "https://example.com/public-stock.json",
-  "adapter": "json",
-  "json_path": "data.products.0.available",
-  "in_stock": ["true"],
-  "out_of_stock": ["false"],
-  "interval": 120,
-  "enabled": false
-}
-```
-
-路径支持对象键及数组索引，字段值必须是标量。有货/缺货采用完整值匹配。字段不存在或结构变化返回未知。使用公开的只读接口；当前不支持携带商家登录 Cookie、Bearer Token 或执行页面 JavaScript。
-
-## 调度与通知语义
-
-- 有货和缺货都要连续确认，默认 2 次，可设 1–5 次。未知/失败会打断连续计数，但不会抹掉上次已确认库存。
-- 一旦确认状态变化，事务内写入事件；只有有货转换且启用通知时才写邮件队列。每个事件至多生成一条通知。
-- 重启后保留库存基线、检查时间、邮件队列；不会因重启重复生成补货通知。修改检测规则或切换启停会清空该监控基线，并取消旧规则的排队通知。
-- SMTP 失败最多尝试 5 次并指数退避。尚未投递的补货邮件超过 1 小时、库存已确认变更或监控被停用时取消。
-- SMTP 是 **至少一次投递**：极端情况下，服务器收信后应用在落库前退出，或部分收件人被拒收后重试，可能重复收到同一邮件。无法保证跨 SMTP 的严格 exactly-once。
-- 首次确认时未启用 SMTP，之后再开启不会补发旧事件；可以开启首次有货通知并重新启用该监控获取新的基线。
-- 失败后按 2 倍延长周期，最高约 1 小时，附加最多 10 秒抖动。成功识别后恢复配置周期。每个站点同时最多一个检查，完成后至少等待 5 秒。
-- 单实例最多 500 个监控，4 个检查并发；小机型数量通常只需要数百 MB 内存。大量同站点机型会排队，实际间隔可能长于设置值。
-- 检查保留 7 天且最多 20 万条；事件和通知保留 90 天。部署镜像日志限制为 3 × 10 MB。
-- **只允许单个进程 / 单 Uvicorn worker 访问一个数据目录**。文件锁会拒绝重复实例。横向扩容需要额外的分布式调度设计。
-
-## 安全与运维
-
-密码使用 scrypt 哈希；会话使用 HttpOnly、SameSite Cookie，写接口校验 CSRF；SMTP 密码通过数据卷中的 `secret.key` 加密。该密钥和数据库应一起保护、一起备份。网页不依赖 CDN、在线字体或第三方脚本。
-
-检测请求只允许 HTTP/HTTPS 80/443，拒绝本机、内网、元数据服务、保留和多播地址。每次跳转重新解析校验 DNS，并将已验证 IP 固定到实际连接，同时保持 TLS 主机名验证。跨域跳转和 HTTPS 降级返回未知，需手动核对新地址。SMTP 主机由管理员配置，允许自己的内网邮件中继；仅支持加密连接。
-
-```bash
-# 状态与日志
-docker compose ps
-docker compose logs --tail=100 -f radar
-
-# 更新：把新代码同步到仓库后执行；沿用数据卷
-bash deploy.sh
-
-# 停止，保留数据
-docker compose --profile https down
-```
-
-不要用 `down -v` 更新，`-v` 会删除持久化卷。`/healthz` 反映调度器进程心跳，不表示所有商家都能访问。查看面板中的未知/失败记录定位站点问题。
-
-### 备份与恢复
-
-直接 Python 部署可在线执行一致性备份：
-
-```bash
-python scripts/backup.py --data data --output backups/2026-09-06
-```
-
-Docker 部署可以先停止应用，再从容器复制整个数据目录（停机备份保证 WAL 一致）：
-
-```bash
-mkdir -p backups/2026-09-06
-docker compose stop radar
-docker compose cp radar:/data/. backups/2026-09-06/
-docker compose start radar
-```
-
-恢复时停止应用，保存当前数据副本，将备份的 `radar.db` 和 `secret.key` 恢复到数据目录，移走旧的 `radar.db-wal` / `radar.db-shm`，确认容器用户 `10001:10001` 有读写权限后启动。不要将旧 WAL 与新数据库混用。卷备份可能包含初始密码文件，妥善保管。
+| 文档                                  | 包含内容                                                       |
+| ------------------------------------- | -------------------------------------------------------------- |
+| [完整设置说明](docs/configuration.md) | 所有监控字段、检测规则、通知开关、环境变量、状态含义、导入导出 |
+| [部署运维](docs/deployment.md)        | 一键部署、Compose、HTTPS、Windows 本地运行、升级、备份、恢复   |
+| [邮件总说明](docs/email/README.md)    | SMTP 字段含义、发信与收信区别、测试步骤、投递状态与排错        |
+| [QQ 邮箱](docs/email/qq.md)           | SMTP 服务开启、授权码获取、完整填写示例                        |
+| [Gmail](docs/email/gmail.md)          | 两步验证、应用专用密码、SMTP 参数与账号限制                    |
+| [163 邮箱](docs/email/163.md)         | SMTP 开启、网易授权码、完整填写示例                            |
+| [验证记录](docs/verification.md)      | 已执行的检查与未覆盖的环境限制                                 |
 
 ## 本地开发
 
+需要 Python 3.12 或更高版本。运行服务不需要 Node.js；Node.js 用于前端语法检查。
+
+Linux / macOS：
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-# Windows PowerShell: .venv/Scripts/Activate.ps1
-pip install -r requirements-dev.txt
-python -m app
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m app
 ```
 
-访问 `http://127.0.0.1:8080`。未设置 `ADMIN_PASSWORD` 时，首次启动生成随机密码并写入 `data/initial-password.txt`。本地 Python 不自动加载 `.env`；需设置环境变量或使用生成密码。`.env` 由 Docker Compose 读取。
+Windows PowerShell：
+
+```powershell
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r requirements-dev.txt
+.venv/Scripts/python.exe -m app
+```
+
+打开 [本地控制台](http://127.0.0.1:8080/)。首次启动未设置 `ADMIN_PASSWORD` 时，会将随机密码写入 `data/initial-password.txt`。本地 Python 不会自动加载 `.env`，环境变量的设置方法见 [环境变量说明](docs/configuration.md#运行环境变量)。
+
+验证命令（下例使用已激活的虚拟环境）：
 
 ```bash
-pytest -q
-ruff check app tests scripts
+python -m pytest -q
+python -m ruff check app tests scripts
 node --check app/static/app.js
 bash -n deploy.sh
+bash tests/test_deploy.sh
 ```
 
-测试不请求真实商家或发送真实邮件。覆盖产品区域匹配、缺货优先、WHMCS / JSON、403 / 验证页、连续确认、重启去重、邮件重试、规则编辑竞态、认证 / CSRF、配置导入、加密及 DNS 固定连接。CI 另外执行 Linux Docker 构建与 Compose 配置检查。
+CI 另外验证 Linux Docker 镜像构建和 Compose 配置。测试使用模拟商家与 SMTP，不发送真实邮件。
 
 ## 项目结构
 
 ```text
-app/main.py        管理 API、认证与应用生命周期
-app/engine.py      调度、库存状态机、持久化通知队列
-app/detectors.py   HTML / WHMCS / JSON 检测
-app/fetcher.py     限流外的网络抓取与 SSRF 防护
-app/mailer.py      SMTP 发送
-app/db.py          SQLite 表结构和连接
-app/catalog.json   商家及机型预设
-app/static/        中文管理面板
-scripts/backup.py  一致性备份
-tests/             自动化测试
+vps-monitor/
+├── app/
+│   ├── main.py          # API、登录与生命周期
+│   ├── engine.py        # 调度、状态机、通知队列
+│   ├── detectors.py     # HTML / WHMCS / JSON 检测
+│   ├── fetcher.py       # HTTP 抓取与地址校验
+│   ├── mailer.py        # SMTP 发信
+│   ├── catalog.json     # 商家与机型预设
+│   └── static/          # 中文管理面板
+├── docs/
+│   ├── configuration.md
+│   ├── deployment.md
+│   └── email/           # QQ、Gmail、163 独立指南
+├── scripts/backup.py
+├── tests/
+├── .env.example
+├── compose.yaml
+├── Dockerfile
+└── deploy.sh
 ```
 
-## 参考与信息来源
+## 已知限制
 
-- 产品状态列表、检查时间、订阅入口参考 [VPS值得买库存监控](https://stock.vpszdm.com/)。
-- 商家分组和补货记录呈现参考 [HostMonit](https://stock.hostmonit.com/)。未依赖其非公开 API，也未复制其代码。
-- 候选来自用户提供的「LA VPS 补货监控」会话；会话中的价格与配置作为历史参考，缺少确认的字段不编造。
-- [VMISS TRI 官方目录](https://app.vmiss.com/store/us-los-angeles-tri)、[VMRack 官方定价](https://www.vmrack.net/pricing)、[DMIT](https://www.dmit.io/)、[ZgoCloud 客户中心](https://clients.zgovps.com/)、[DigitalFyre 常规产品](https://www.digitalfyre.com/vps/)。预设整理日期：2026-09-06。
+- 部分商家会限制自动访问，页面也可能改版；规则需要维护。程序不绕过验证码，不执行页面 JavaScript，不携带商家账号 Cookie。
+- 一个数据目录仅允许一个服务实例 / 一个 Uvicorn worker。最多 500 个监控、4 个并发检查；同站点串行，实际检查可能排队。
+- SMTP 在极端断线或进程退出时可能重复投递；同一库存事件不会重复创建通知，但无法保证邮件服务器端严格只投递一次。
+- 检查保留 7 天且最多 20 万条，库存事件和通知保留 90 天；当前不提供面板修改保留期。
+- 本地开发环境未完成 Docker 实机、Caddy 证书签发及浏览器自动化验证；以 [验证记录](docs/verification.md) 和实际 CI 结果为准。
 
-MIT License.
+## 参与贡献
+
+欢迎通过 [Issues](https://github.com/Super-YYQ/vps-monitor/issues) 提交商家模板变动或功能建议，通过 Pull Request 提交修改。
+
+反馈检测问题时附上公开产品 URL、检测方式、期望结果、实际状态和脱敏后的错误信息。不要提交邮箱授权码、登录 Cookie、`.env`、数据库或备份。修改检测器时请补充对应的离线样例测试，并运行上述验证命令。
+
+## 参考项目与资料
+
+- 产品列表、检查时间和订阅入口参考 [VPS 值得买](https://stock.vpszdm.com/)。
+- 商家分组与补货记录呈现参考 [HostMonit](https://stock.hostmonit.com/)。
+- 初始候选根据用户提供的「LA VPS 补货监控」会话及公开产品目录整理。未复制参考站点代码，也不依赖其非公开 API。
+- 邮箱参数与服务开启方法的来源列在各邮箱指南中，核对日期为 2026-09-06。
+
+## 许可证
+
+本项目使用 [MIT License](LICENSE)。

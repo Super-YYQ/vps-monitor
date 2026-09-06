@@ -8,8 +8,17 @@
 - 一键部署脚本通过 Bash 语法检查；使用模拟 Docker 命令验证初始密码生成、HTTPS 配置、重复执行保留密码、拒绝无效域名。
 - `pip check` 通过。
 - 真实本地 Uvicorn 服务启动成功，`/` 返回 HTTP 200，`/healthz` 返回 `{"status":"ok"}`。
-- 当前环境未安装 Docker，未本地运行 Linux 镜像构建、容器启动、Caddy ACME 签发；仓库 CI 已包含 Linux Docker 构建和 Compose 配置校验，但尚未执行远端 CI。
+- 当前环境未安装 Docker，未本地运行 Linux 镜像构建、容器启动、Caddy ACME 签发；仓库 CI 已包含 Linux Docker 构建和 Compose 配置校验，远端执行结果见 [GitHub Actions](https://github.com/Super-YYQ/vps-monitor/actions/workflows/ci.yml)。
 - 浏览器自动化因 Codex 环境的 Windows ACL 初始化错误未能启动，因此没有完成真实浏览器交互或截图验证。
 - 商家公开页面访问验证中，VMISS / ZgoCloud 存在 403，部分商家出现 TLS 证书错误或超时。规则模板经过离线检测测试，但不能据此声称全部预设从部署服务器均可用。
 
 上线前的实际配置工作：在目标服务器部署，填写 SMTP，发送一封测试邮件；对所选商家试运行规则，补齐历史活动的当前商品链接，再启用监控。
+
+## 目录迁移与文档验证
+
+- 完整迁移仓库、Git 历史、数据库、密钥与本地运行文件；迁移前后 3668 个文件的 SHA-256 一致，校验后清理旧目录内容。
+- 在新目录重新建立 Python 虚拟环境并安装依赖；82 项自动化测试再次通过（2 条第三方依赖弃用提醒）。
+- 在新目录通过 Ruff、JavaScript 语法、部署脚本测试及 `pip check`；恢复本地服务，首页和健康检查均为 HTTP 200。
+- 检查 8 份 Markdown 文档中的 59 个本地链接及 JSON 示例，全部通过；文档已统一格式。
+- 邮箱指南核对 QQ、Gmail、163 的公开官方帮助或云厂商官方接入说明，链接列在各指南中；未使用真实邮箱凭据执行投递验证。
+- 数据目录、环境文件、虚拟环境、测试产物与备份均被 Git 忽略，不包含在提交中。

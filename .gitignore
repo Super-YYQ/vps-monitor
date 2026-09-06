@@ -10,3 +10,7 @@ data/
 coverage.xml
 .coverage
 artifacts/
+
+backups/
+.env.*
+!.env.example
