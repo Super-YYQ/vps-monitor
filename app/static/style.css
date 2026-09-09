@@ -889,6 +889,23 @@ main {
   gap: 24px;
   max-width: 1060px;
 }
+.mail-active {
+  border-color: var(--green);
+}
+.mail-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mail-card .card-bottom {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mail-card .card-bottom h2 {
+  margin: 0;
+}
+#mail-dialog .settings-card {
+  margin: 0;
+}
 .settings-card {
   padding: 25px;
   margin-bottom: 22px;
@@ -1353,10 +1370,14 @@ dialog::backdrop {
   }
   .sidebar nav {
     display: flex;
+    flex-wrap: wrap;
     gap: 5px;
     margin-top: 18px;
   }
   .nav-item {
+    flex: 1 1 auto;
+    width: auto;
+    white-space: nowrap;
     font-size: 12px;
     padding: 9px 10px;
     justify-content: center;

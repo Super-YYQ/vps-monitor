@@ -126,6 +126,33 @@ def test_catalog_models_are_valid_and_paused(authenticated):
         assert not config.enabled
 
 
+def test_dmit_presets_include_detection_and_purchase_addresses(authenticated):
+    presets = authenticated.get("/api/catalog").json()["presets"]
+    for preset in presets:
+        if preset["config"]["provider"] == "DMIT":
+            assert preset["config"].get("url", "").startswith("https://www.dmit.io/")
+            assert preset["config"].get("purchase_url", "").startswith("https://www.dmit.io/")
+
+
+def test_probe_explains_vmiss_challenge_without_changing_inventory(authenticated, monkeypatch):
+    from app.fetcher import Page
+
+    config = next(
+        p["config"]
+        for p in authenticated.get("/api/catalog").json()["presets"]
+        if p["id"] == "vmiss-tri-basic"
+    )
+    monkeypatch.setattr(
+        "app.main.fetch_page",
+        lambda url: Page(403, '<title>Just a moment...</title><form id="challenge-form"></form>', url, 26),
+    )
+    result = authenticated.post("/api/probe", json=config).json()
+    assert result["status"] == "error" and result["latency"] == 26
+    assert "Cloudflare" in result["reason"] and "浏览器" in result["reason"]
+    assert authenticated.get("/api/dashboard").json()["monitors"] == []
+    assert authenticated.get("/api/notifications").json() == []
+
+
 def test_manual_check_paused_and_missing(authenticated, config):
     ident = authenticated.post("/api/monitors", json={**config, "enabled": False}).json()["ids"][0]
     assert authenticated.post(f"/api/monitors/{ident}/check").status_code == 400

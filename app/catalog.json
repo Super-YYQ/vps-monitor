@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-06",
+  "updated": "2026-09-09",
   "notice": "来源为 LA VPS 补货监控会话及公开商家页面。价格是参考信息，不是实时报价。预设加入后默认暂停，试运行并核对检测范围后启用。历史特价未核实购买地址时保留为空。",
   "providers": [
     {
@@ -56,7 +56,7 @@
     {
       "id": "vmiss-tri-basic",
       "label": "TRI · 首选入门",
-      "readiness": "需核对规则",
+      "readiness": "访问受限，需核实",
       "config": {
         "provider": "VMISS",
         "name": "US.LA.TRI.Basic",
@@ -75,13 +75,14 @@
         ],
         "specs": "1 vCPU · 1 GB · 10 GB SSD · 500 GB/月 · 200 Mbps · 1 IPv4",
         "price_note": "5 CAD/月（公开目录参考）",
-        "notes": "自动在目录中匹配产品名，提取 PID，再检查对应产品配置页面。Order Now 按钮本身不视为有货。"
+        "notes": "当前普通 HTTP 请求可能收到 Cloudflare 人机验证（403），需向商家确认允许监控的公开接口或放行服务器 IP。可访问后按完整产品名提取 PID，再核验订购配置页；Order Now 按钮本身不视为有货。",
+        "purchase_url": "https://app.vmiss.com/store/us-los-angeles-tri"
       }
     },
     {
       "id": "vmiss-tri-core",
       "label": "TRI · 流量加量",
-      "readiness": "需核对规则",
+      "readiness": "访问受限，需核实",
       "config": {
         "provider": "VMISS",
         "name": "US.LA.TRI.Core",
@@ -100,7 +101,8 @@
         ],
         "specs": "1 vCPU · 2 GB · 15 GB SSD · 1 TB/月 · 200 Mbps · 1 IPv4",
         "price_note": "10 CAD/月（公开目录参考）",
-        "notes": "自动在目录中匹配产品名，提取 PID，再检查对应产品配置页面。Order Now 按钮本身不视为有货。"
+        "notes": "当前普通 HTTP 请求可能收到 Cloudflare 人机验证（403），需向商家确认允许监控的公开接口或放行服务器 IP。可访问后按完整产品名提取 PID，再核验订购配置页；Order Now 按钮本身不视为有货。",
+        "purchase_url": "https://app.vmiss.com/store/us-los-angeles-tri"
       }
     },
     {
@@ -153,33 +155,37 @@
     {
       "id": "dmit-pro-wee",
       "label": "Premium · 历史特价",
-      "readiness": "待填写地址",
+      "readiness": "已填链接，需试运行",
       "config": {
         "provider": "DMIT",
         "name": "LAX.Pro.WEE",
         "adapter": "whmcs",
         "expected_text": "LAX.Pro.WEE",
         "price_note": "39.90 USD/年（历史活动参考）",
-        "notes": "不能用 LAX.AS3.T1.WEE 替代；Tier 1 与 Premium 线路不同。活动链接未核实，请填写真实 PID。"
+        "notes": "已补充该型号购买入口 PID 183（不含推广参数）。当前访问收到 Cloudflare 验证，尚未实网确认商品身份和库存；启用前请核对页面产品名并试运行。不能用 Tier 1 或 EB 套餐代替 Premium。",
+        "url": "https://www.dmit.io/cart.php?a=add&pid=183",
+        "purchase_url": "https://www.dmit.io/cart.php?a=add&pid=183"
       }
     },
     {
       "id": "dmit-eb-corona",
       "label": "EB · 历史特价",
-      "readiness": "待填写地址",
+      "readiness": "已填链接，需试运行",
       "config": {
         "provider": "DMIT",
         "name": "LAX.EB.CORONA",
         "adapter": "whmcs",
         "expected_text": "LAX.EB.CORONA",
         "price_note": "49.90 USD/年（历史活动参考）",
-        "notes": "配置与优惠条件以本轮活动页为准。"
+        "notes": "已补充该型号购买入口 PID 218（不含推广参数）。当前访问收到 Cloudflare 验证，尚未实网确认商品身份和库存；启用前请核对页面产品名并试运行。",
+        "url": "https://www.dmit.io/cart.php?a=add&pid=218",
+        "purchase_url": "https://www.dmit.io/cart.php?a=add&pid=218"
       }
     },
     {
       "id": "dmit-as3-tiny",
       "label": "Premium · 常规候选",
-      "readiness": "待填写地址",
+      "readiness": "已填链接，需试运行",
       "config": {
         "provider": "DMIT",
         "name": "LAX.AS3.Pro.TINY",
@@ -187,7 +193,9 @@
         "expected_text": "LAX.AS3.Pro.TINY",
         "specs": "1 vCPU · 2 GB · 20 GB SSD（会话参考）",
         "price_note": "10.90 USD/月（会话参考，高于 10 美元目标）",
-        "notes": "从官网读取该型号产品 PID；这里保留原币种报价，不进行未经核实的汇率转换。"
+        "notes": "已补充该型号购买入口 PID 253（不含推广参数）。当前访问收到 Cloudflare 验证，尚未实网确认商品身份和库存；启用前请核对页面产品名并试运行。",
+        "url": "https://www.dmit.io/cart.php?a=add&pid=253",
+        "purchase_url": "https://www.dmit.io/cart.php?a=add&pid=253"
       }
     },
     {

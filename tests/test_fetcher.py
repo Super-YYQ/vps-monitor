@@ -42,7 +42,7 @@ def test_connection_is_pinned_and_tls_hostname_preserved(monkeypatch):
 
     class Response:
         status = 200
-        headers = {"Content-Type": "text/html"}
+        headers = {"Content-Type": "text/html", "cf-mitigated": "challenge"}
 
         def stream(self, *args, **kwargs):
             yield b"<h1>Hello</h1>"
@@ -62,7 +62,8 @@ def test_connection_is_pinned_and_tls_hostname_preserved(monkeypatch):
             pass
 
     monkeypatch.setattr("app.fetcher.urllib3.HTTPSConnectionPool", Pool)
-    assert fetch_page("https://example.com/stock").status == 200
+    page = fetch_page("https://example.com/stock")
+    assert page.status == 200 and page.challenge
     assert (
         seen["host"] == "1.1.1.1"
         and seen["server_hostname"] == "example.com"

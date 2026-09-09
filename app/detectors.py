@@ -24,10 +24,27 @@ def detect(config: Monitor, page: Page) -> Result:
     def result(status, reason):
         return Result(status, reason, page.latency)
 
-    if page.status != 200:
-        return result("error", f"HTTP {page.status}；未作为库存变化")
     soup = BeautifulSoup(page.text, "html.parser")
     title = normalize(soup.title.get_text() if soup.title else "")
+    if (
+        page.challenge
+        or "just a moment" in title
+        or soup.select_one("#challenge-form, #cf-challenge-running")
+    ):
+        return result(
+            "error" if page.status != 200 else "unknown",
+            f"HTTP {page.status}：Cloudflare 人机验证拦截，服务器未取得商品页面；"
+            "普通 HTTP 检测无法完成浏览器验证。请向商家确认允许监控的公开接口或放行服务器 IP；"
+            "未作为库存变化",
+        )
+    if page.status == 403:
+        return result(
+            "error",
+            "HTTP 403：商家拒绝服务器访问，可能限制来源 IP 或自动请求；"
+            "请核对地址并联系商家确认访问方式；未作为库存变化",
+        )
+    if page.status != 200:
+        return result("error", f"HTTP {page.status}；未作为库存变化")
     if any(x in title for x in ["just a moment", "attention required", "access denied", "sign in", "login"]):
         return result("unknown", "收到验证或登录页面")
     if soup.select_one("#challenge-form, #cf-challenge-running, .g-recaptcha, .h-captcha"):

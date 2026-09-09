@@ -96,3 +96,14 @@ class MailSettings(BaseModel):
         if self.enabled and (not self.host or not self.sender or not self.recipients):
             raise ValueError("启用邮件通知前请填写服务器、发件人和收件人")
         return self
+
+
+class MailProfile(MailSettings):
+    name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def profile_name(cls, value):
+        if not value.strip():
+            raise ValueError("请输入配置名称")
+        return value.strip()

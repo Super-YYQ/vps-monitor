@@ -57,8 +57,9 @@
             <span>◈</span>商家与机型</button
           ><button data-view="notifications" class="nav-item">
             <span>♧</span>通知记录</button
+          ><button data-view="mail" class="nav-item"><span>✉</span>邮件通知</button
           ><button data-view="settings" class="nav-item">
-            <span>⚙</span>通知与设置
+            <span>⚙</span>系统设置
           </button>
         </nav>
         <div class="sidebar-bottom">
@@ -102,7 +103,7 @@
               <span
                 >✉ 邮件通知尚未启用。配置 SMTP
                 后，确认补货会自动发送到你的邮箱。</span
-              ><button data-view="settings" class="text-button">
+              ><button data-view="mail" class="text-button">
                 去配置 →
               </button>
             </div>
@@ -215,19 +216,75 @@
             </div>
             <div class="panel" id="notification-list"></div>
           </section>
-          <section id="view-settings" class="view" hidden>
+          <section id="view-mail" class="view" hidden>
             <div class="page-heading">
-              <div>
-                <div class="eyebrow">PREFERENCES</div>
-                <h1>通知与设置</h1>
-                <p>让补货提醒到达你每天查看的邮箱。</p>
-              </div>
+              <div><div class="eyebrow">EMAIL NOTIFICATIONS</div><h1>邮件通知</h1>
+                <p>保存多组邮箱配置，随时切换当前发信邮箱。</p></div>
+              <button id="new-mail" class="primary">＋ 新增邮件配置</button>
             </div>
+            <div class="notice">一次选用一组配置发送通知。测试邮件使用当前已保存的配置；切换后，待发送的补货提醒使用新配置，尚未发送的测试邮件会取消。</div>
+            <div id="mail-profiles" class="catalog-grid"></div>
+          </section>
+          <section id="view-settings" class="view" hidden>
+            <div class="page-heading"><div><div class="eyebrow">SYSTEM SETTINGS</div>
+              <h1>系统设置</h1><p>管理监控配置备份和管理员账号。</p></div></div>
             <div class="settings-layout">
-              <form id="mail-form" class="panel settings-card">
-                <h2>邮件通知</h2>
+                <section class="panel settings-card">
+                  <h2>监控配置备份</h2>
+                  <p class="muted">
+                    导出商家、机型和规则；不包含邮件密码及登录凭据。导入后默认暂停。
+                  </p>
+                  <div class="actions">
+                    <button id="export" class="secondary">↓ 导出 JSON</button
+                    ><label class="secondary file-button"
+                      >↑ 导入 JSON<input
+                        id="import"
+                        type="file"
+                        accept="application/json,.json"
+                        class="sr-only"
+                    /></label>
+                  </div>
+                </section>
+                <form id="password-form" class="panel settings-card">
+                  <h2>管理员密码</h2>
+                  <label
+                    >当前密码<input
+                      name="current_password"
+                      type="password"
+                      required
+                      autocomplete="current-password" /></label
+                  ><label
+                    >新密码<input
+                      name="new_password"
+                      type="password"
+                      required
+                      minlength="12"
+                      maxlength="500"
+                      autocomplete="new-password"
+                  /></label>
+                  <p class="help">至少 12 个字符，修改后所有会话需重新登录。</p>
+                  <button class="secondary" type="submit">更新密码</button>
+                </form>
+            </div>
+            <section class="settings-note">
+              <h3>监控策略</h3>
+              <p>默认每 120 秒检查，连续 2 次确认后记录库存变化。异常自动延长间隔，最多 1 小时；同站点至少间隔 5 秒。</p>
+              <p>检查记录保留 7 天，库存变更及通知保留 90 天。服务独立运行，不需要保持此页面打开。</p>
+            </section>
+          </section>
+        </div>
+        <footer>
+          VPS RADAR <span>持续关注，及时发现。</span
+          ><span>所有时间以北京时间显示</span>
+        </footer>
+      </main>
+    </div>
+    <dialog id="mail-dialog" aria-labelledby="mail-dialog-title">
+      <form id="mail-form" class="settings-card">
+                <div class="dialog-header"><h2 id="mail-dialog-title">新增邮件配置</h2><button type="button" class="icon-button" data-close="mail-dialog" aria-label="关闭">×</button></div>
+                <label>配置名称<input name="name" required maxlength="80" placeholder="例如：QQ 主邮箱、Gmail 备用" /></label>
                 <label class="switch-row"
-                  ><span>启用 SMTP 邮件通知</span
+                  ><span>选用此配置时启用通知</span
                   ><input name="enabled" type="checkbox"
                 /></label>
                 <div class="form-grid">
@@ -270,75 +327,17 @@
                   </label>
                 </div>
                 <div class="actions">
-                  <button class="primary" type="submit">保存设置</button
-                  ><button id="test-mail" class="secondary" type="button">
-                    发送测试邮件
+                  <button class="primary" type="submit">保存配置</button
+                  ><button class="secondary" type="button" data-close="mail-dialog">
+                    取消
                   </button>
                 </div>
                 <p class="help">
-                  测试邮件使用已保存的配置。密码加密存储；失败自动重试，最多 5
-                  次。
+                  每组配置独立保存授权码。留空只保留本组已有授权码；在卡片中选为当前配置后用于发信。
                 </p>
+              <p id="mail-error" class="error" role="alert"></p>
               </form>
-              <div>
-                <section class="panel settings-card">
-                  <h2>监控配置备份</h2>
-                  <p class="muted">
-                    导出商家、机型和规则；不包含邮件密码及登录凭据。导入后默认暂停。
-                  </p>
-                  <div class="actions">
-                    <button id="export" class="secondary">↓ 导出 JSON</button
-                    ><label class="secondary file-button"
-                      >↑ 导入 JSON<input
-                        id="import"
-                        type="file"
-                        accept="application/json,.json"
-                        class="sr-only"
-                    /></label>
-                  </div>
-                </section>
-                <form id="password-form" class="panel settings-card">
-                  <h2>管理员密码</h2>
-                  <label
-                    >当前密码<input
-                      name="current_password"
-                      type="password"
-                      required
-                      autocomplete="current-password" /></label
-                  ><label
-                    >新密码<input
-                      name="new_password"
-                      type="password"
-                      required
-                      minlength="12"
-                      maxlength="500"
-                      autocomplete="new-password"
-                  /></label>
-                  <p class="help">至少 12 个字符，修改后所有会话需重新登录。</p>
-                  <button class="secondary" type="submit">更新密码</button>
-                </form>
-                <section class="settings-note">
-                  <h3>监控策略</h3>
-                  <p>
-                    默认每 120 秒检查，连续 2
-                    次确认后记录库存变化。异常自动延长间隔，最多 1
-                    小时；同站点至少间隔 5 秒。
-                  </p>
-                  <p>
-                    检查记录保留 7 天，库存变更及通知保留 90
-                    天。服务独立运行，不需要保持此页面打开。
-                  </p>
-                </section>
-              </div>
-            </div>
-          </section>
-        </div>
-        <footer>
-          VPS RADAR <span>持续关注，及时发现。</span
-          ><span>所有时间以北京时间显示</span>
-        </footer>
-      </main>
-    </div>
+    </dialog>
     <dialog id="monitor-dialog">
       <form id="monitor-form">
         <div class="dialog-header">

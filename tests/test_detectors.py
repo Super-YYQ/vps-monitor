@@ -33,6 +33,17 @@ def test_http_errors_never_report_stock(config, code):
     )
 
 
+def test_cloudflare_header_is_enough_even_without_html_markers(config):
+    result = detect(Monitor(**config), Page(403, "", config["url"], challenge=True))
+    assert result.status == "error" and "Cloudflare" in result.reason
+
+
+def test_generic_403_does_not_claim_cloudflare(config):
+    result = detect(Monitor(**config), Page(403, "Forbidden", config["url"]))
+    assert result.status == "error" and "Cloudflare" not in result.reason
+    assert "拒绝" in result.reason
+
+
 @pytest.mark.parametrize(
     "body,expected",
     [

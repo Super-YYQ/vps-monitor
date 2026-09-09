@@ -21,7 +21,8 @@ const views = {
   overview: "监控总览",
   catalog: "商家与机型",
   notifications: "通知记录",
-  settings: "通知与设置",
+  mail: "邮件通知",
+  settings: "系统设置",
 };
 const state = {
   csrf: "",
@@ -33,6 +34,9 @@ const state = {
   discovered: [],
   deleting: null,
   timer: null,
+  mail: null,
+  editingMail: null,
+  deletingMail: null,
 };
 const defaults = {
   provider: "",
@@ -334,7 +338,7 @@ async function setView(view) {
   $("#breadcrumb").textContent = `工作空间 / ${views[view]}`;
   if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
   if (view === "notifications") await loadNotifications();
-  if (view === "settings") await loadMail();
+  if (view === "mail") await loadMail();
 }
 function openMonitor(config = {}, id = null) {
   state.editing = id;
@@ -385,11 +389,29 @@ async function loadNotifications() {
   const rows = await api("/notifications");
   $("#notification-list").innerHTML = rows.length
     ? `<table class="log-table"><thead><tr><th>邮件主题</th><th>投递状态</th><th>尝试次数</th><th>时间</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${escapeHTML(row.subject)}${row.error ? `<div class="error">${escapeHTML(row.error)}</div>` : ""}</td><td><span class="delivery ${escapeHTML(row.status)}">${{ sent: "已发送", pending: "待发送 / 重试中", failed: "发送失败", cancelled: "已取消" }[row.status] || escapeHTML(row.status)}</span></td><td>${row.attempts} / 5</td><td>${time(row.sent || row.created, true)}</td></tr>`).join("")}</tbody></table>`
-    : '<div class="empty-state"><div class="empty-icon">✉</div><h3>还没有通知记录</h3><p>设置邮件后，可以先发送一封测试邮件。</p><button class="secondary" data-view="settings">配置邮件通知 →</button></div>';
+    : '<div class="empty-state"><div class="empty-icon">✉</div><h3>还没有通知记录</h3><p>设置邮件后，可以先发送一封测试邮件。</p><button class="secondary" data-view="mail">配置邮件通知 →</button></div>';
 }
 async function loadMail() {
-  const c = await api("/settings/mail"),
-    form = $("#mail-form");
+  state.mail = await api("/settings/mail/profiles");
+  $("#mail-profiles").innerHTML = state.mail.profiles.length
+    ? state.mail.profiles.map((c) => {
+        const active = c.id === state.mail.active_id, id = escapeHTML(c.id);
+        return `<article class="panel settings-card mail-card ${active ? "mail-active" : ""}">
+          <div class="card-bottom"><h2>${escapeHTML(c.name)}</h2><span class="readiness">${active ? (c.enabled ? "● 当前使用" : "○ 当前已停用") : "备用配置"}</span></div>
+          <p>${escapeHTML(c.sender || "尚未填写发件邮箱")}</p>
+          <p class="muted small">${escapeHTML(c.host || "尚未填写服务器")} · ${c.port} · ${escapeHTML(c.security.toUpperCase())}</p>
+          <p class="muted small">收件人：${escapeHTML(c.recipients.join("、") || "尚未填写")}</p>
+          <div class="actions"><button class="secondary" data-mail="edit" data-id="${id}">编辑</button>
+          ${!active ? `<button class="primary" data-mail="activate" data-id="${id}">设为当前</button>` : `<button class="secondary" data-mail="test" data-id="${id}" ${c.enabled ? "" : "disabled"}>发送测试邮件</button>`}
+          <button class="text-button delete-link" data-mail="delete" data-id="${id}">删除</button></div></article>`;
+      }).join("")
+    : '<div class="panel empty-state"><div class="empty-icon">✉</div><h3>添加你的第一组邮箱</h3><p>支持保存多组 SMTP 配置，第一组会自动设为当前配置。</p></div>';
+}
+function openMail(c = null) {
+  const form = $("#mail-form");
+  form.reset();
+  state.editingMail = c?.id || null;
+  c = c || { enabled: true, port: 587, security: "starttls" };
   for (const [key, value] of Object.entries(c)) {
     const input = form.elements.namedItem(key);
     if (!input) continue;
@@ -400,7 +422,11 @@ async function loadMail() {
   form.elements.password.placeholder = c.has_password
     ? "已保存授权码，留空保持不变"
     : "填写 SMTP 密码或邮箱授权码";
+  $("#mail-dialog-title").textContent = state.editingMail ? "编辑邮件配置" : "新增邮件配置";
+  $("#mail-error").textContent = "";
+  $("#mail-dialog").showModal();
 }
+$("#new-mail").addEventListener("click", () => openMail());
 
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -483,19 +509,19 @@ $("#mail-form").addEventListener("submit", async (event) => {
       .split(/[\n,;]+/)
       .map((x) => x.trim())
       .filter(Boolean);
-    await api("/settings/mail", { method: "PUT", body: JSON.stringify(data) });
-    toast("邮件配置已保存");
-    await loadMail();
-    await loadDashboard();
+    try {
+      await api(state.editingMail ? `/settings/mail/profiles/${state.editingMail}` : "/settings/mail/profiles", {
+        method: state.editingMail ? "PUT" : "POST", body: JSON.stringify(data),
+      });
+      $("#mail-dialog").close();
+      toast("邮件配置已保存");
+      await loadMail();
+      await loadDashboard();
+    } catch (error) {
+      $("#mail-error").textContent = error.message;
+    }
   });
 });
-$("#test-mail").addEventListener("click", () =>
-  busy($("#test-mail"), async () => {
-    const r = await api("/settings/mail/test", { method: "POST" });
-    toast(r.message);
-    await setView("notifications");
-  }),
-);
 $("#password-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -609,6 +635,33 @@ document.addEventListener("click", async (event) => {
     });
     return;
   }
+  const mailButton = event.target.closest("[data-mail]");
+  if (mailButton) {
+    const c = state.mail?.profiles.find((p) => p.id === mailButton.dataset.id);
+    if (!c) return;
+    await busy(mailButton, async () => {
+      const action = mailButton.dataset.mail;
+      if (action === "edit") openMail(c);
+      if (action === "activate") {
+        await api(`/settings/mail/profiles/${c.id}/activate`, { method: "POST" });
+        toast(c.enabled ? "已切换当前邮件配置" : "已选用此配置，通知处于停用状态");
+        await loadMail();
+        await loadDashboard();
+      }
+      if (action === "test") {
+        const result = await api("/settings/mail/test", { method: "POST" });
+        toast(result.message);
+        await setView("notifications");
+      }
+      if (action === "delete") {
+        state.deletingMail = c.id;
+        state.deleting = null;
+        $("#confirm-message").textContent = `确定删除邮件配置「${c.name}」？${c.id === state.mail.active_id ? "删除后邮件通知将停用，需另选当前配置。" : ""}`;
+        $("#confirm-dialog").showModal();
+      }
+    });
+    return;
+  }
   const rowButton = event.target.closest("[data-row]");
   if (!rowButton) return;
   const row = state.dashboard.monitors.find(
@@ -645,6 +698,7 @@ document.addEventListener("click", async (event) => {
     }
     if (action === "delete") {
       state.deleting = row.id;
+      state.deletingMail = null;
       $("#confirm-message").textContent =
         `确定删除「${row.config.provider} · ${row.config.name}」？`;
       $("#confirm-dialog").showModal();
@@ -653,6 +707,15 @@ document.addEventListener("click", async (event) => {
 });
 $("#confirm-delete").addEventListener("click", () =>
   busy($("#confirm-delete"), async () => {
+    if (state.deletingMail) {
+      await api(`/settings/mail/profiles/${state.deletingMail}`, { method: "DELETE" });
+      state.deletingMail = null;
+      $("#confirm-dialog").close();
+      toast("邮件配置已删除");
+      await loadMail();
+      await loadDashboard();
+      return;
+    }
     if (!state.deleting) return;
     await api(`/monitors/${state.deleting}`, { method: "DELETE" });
     state.deleting = null;

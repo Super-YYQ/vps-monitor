@@ -124,6 +124,14 @@ class Engine:
                 (now,),
             ).fetchall()
         for row in rows:
+            # A profile switch can cancel a queued test while an earlier message is being sent.
+            with self.db.connect() as db:
+                pending = db.execute("SELECT status FROM notifications WHERE id=?", (row["id"],)).fetchone()
+            if not pending or pending["status"] != "pending":
+                continue
+            config = self.smtp_config()
+            if not config.enabled:
+                return
             if row["event_id"]:
                 with self.db.connect() as db:
                     monitor = db.execute("SELECT * FROM monitors WHERE id=?", (row["monitor_id"],)).fetchone()

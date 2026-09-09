@@ -18,6 +18,7 @@ class Page:
     url: str
     latency: int = 0
     content_type: str = "text/html"
+    challenge: bool = False
 
 
 def resolve_public(host, port):
@@ -99,6 +100,7 @@ def fetch_page(url):
                 url,
                 int((time.monotonic() - started) * 1000),
                 response.headers.get("Content-Type", ""),
+                response.headers.get("cf-mitigated", "").lower() == "challenge",
             )
         finally:
             if response:

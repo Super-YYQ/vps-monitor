@@ -19,7 +19,8 @@ from app.db import Database
 from app.detectors import discover_whmcs, inspect_monitor
 from app.engine import Engine
 from app.fetcher import fetch_page
-from app.models import MailSettings, Monitor, public_url
+from app.mail_profiles import MailProfiles
+from app.models import MailProfile, MailSettings, Monitor, public_url
 from app.security import InstanceLock, Vault, password_hash, password_matches, token_hash
 
 ROOT = Path(__file__).parent
@@ -46,6 +47,7 @@ def create_app(data_dir=None, start_engine=True):
     directory = Path(data_dir or os.getenv("DATA_DIR", "data"))
     database = Database(directory)
     vault = Vault(directory)
+    mail_profiles = MailProfiles(database, vault)
     engine = Engine(database, vault)
     attempts = defaultdict(deque)
     sensitive_calls = defaultdict(deque)
@@ -385,10 +387,30 @@ def create_app(data_dir=None, start_engine=True):
 
     @app.put("/api/settings/mail")
     async def save_mail(config: MailSettings):
-        old = database.setting("smtp", {})
-        value = config.model_dump()
-        value["password"] = vault.encrypt(config.password) if config.password else old.get("password", "")
-        database.set_setting("smtp", value)
+        mail_profiles.save(config, current=True)
+        return {"ok": True}
+
+    @app.get("/api/settings/mail/profiles")
+    async def list_mail_profiles():
+        return mail_profiles.list()
+
+    @app.post("/api/settings/mail/profiles", status_code=201)
+    async def add_mail_profile(config: MailProfile):
+        return {"id": mail_profiles.save(config)}
+
+    @app.put("/api/settings/mail/profiles/{ident}")
+    async def update_mail_profile(ident: str, config: MailProfile):
+        mail_profiles.save(config, ident)
+        return {"ok": True}
+
+    @app.post("/api/settings/mail/profiles/{ident}/activate")
+    async def activate_mail_profile(ident: str):
+        mail_profiles.activate(ident)
+        return {"ok": True}
+
+    @app.delete("/api/settings/mail/profiles/{ident}")
+    async def delete_mail_profile(ident: str):
+        mail_profiles.delete(ident)
         return {"ok": True}
 
     @app.post("/api/settings/mail/test", status_code=202)
