@@ -153,6 +153,34 @@ def test_probe_explains_vmiss_challenge_without_changing_inventory(authenticated
     assert authenticated.get("/api/notifications").json() == []
 
 
+def test_probe_without_url_explains_missing_address(authenticated):
+    config = {
+        "provider": "BandwagonHost",
+        "name": "MegaBOX Pro",
+        "adapter": "whmcs",
+        "expected_text": "MegaBOX",
+        "url": "",
+        "enabled": False,
+    }
+    result = authenticated.post("/api/probe", json=config)
+    assert result.status_code == 400
+    assert "检测地址" in result.json()["detail"]
+
+
+def test_bandwagon_presets_include_directory_and_stock_terms(authenticated):
+    presets = {p["id"]: p for p in authenticated.get("/api/catalog").json()["presets"]}
+    for ident in ("bwh-megabox", "bwh-minibox"):
+        preset = presets[ident]
+        config = preset["config"]
+        assert preset["readiness"] != "待填写地址"
+        assert config["url"].startswith("https://bandwagonhost.com/")
+        assert config["purchase_url"].startswith("https://bandwagonhost.com/")
+        assert "无货" in config["out_of_stock"]
+        assert "有货" in config["in_stock"]
+        assert config["mirror_aliases"]
+        assert "搬瓦工" not in config["mirror_aliases"]
+
+
 def test_manual_check_paused_and_missing(authenticated, config):
     ident = authenticated.post("/api/monitors", json={**config, "enabled": False}).json()["ids"][0]
     assert authenticated.post(f"/api/monitors/{ident}/check").status_code == 400

@@ -116,7 +116,7 @@ docker compose up -d --build --wait
 | VMISS         | US.LA.TRI Basic / Core；DC2 Basic / Core     | TRI 目录已配置但受验证拦截；DC2 待填写地址   |
 | VMRack        | L3.VPS.DC2.2C2G.Base                         | 官方价格表规则已提供，需试运行       |
 | DMIT          | LAX.Pro.WEE、LAX.EB.CORONA、LAX.AS3.Pro.TINY | 已填商品 PID 链接，需核实并试运行            |
-| BandwagonHost | MegaBOX Pro、MiniBOX                         | 历史活动，待当前购买链接             |
+| BandwagonHost | MegaBOX Pro、MiniBOX                         | 已填 WHMCS 目录地址，需试运行        |
 | ZgoCloud      | Los Angeles AMD Optimised 1G                 | 待填写精确产品区域或 JSON 字段       |
 | VIRCS         | CN2 GIA Lite                                 | 原地址发生跳转，需要核实当前产品地址 |
 | DigitalFyre   | LA Ryzen 9950X 8C8G 活动                     | 历史活动地址待核实                   |

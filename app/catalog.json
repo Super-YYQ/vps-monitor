@@ -201,27 +201,37 @@
     {
       "id": "bwh-megabox",
       "label": "MegaBOX · 历史特价",
-      "readiness": "待填写地址",
+      "readiness": "需试运行",
       "config": {
         "provider": "BandwagonHost",
         "name": "MegaBOX Pro",
         "adapter": "whmcs",
         "expected_text": "MegaBOX",
+        "url": "https://bandwagonhost.com/cart.php",
+        "purchase_url": "https://bandwagonhost.com/cart.php",
+        "in_stock": ["Order Now", "立即订购", "有货"],
+        "out_of_stock": ["Out of Stock", "Sold Out", "缺货", "售罄", "无货"],
+        "mirror_aliases": ["megabox"],
         "price_note": "约 45–49 USD/年（历史活动参考）",
-        "notes": "待当前官方活动链接。不同批次的配置和可迁移机房可能不同。"
+        "notes": "已填搬瓦工 WHMCS 产品目录。MegaBOX 属历史活动机型，目录中可能无当前批次；试运行时若官网被拦截，会改用聚合站按别名匹配。启用前请核对页面产品名，不使用正价 E-Commerce 库存代替。"
       }
     },
     {
       "id": "bwh-minibox",
       "label": "MiniBOX · 历史特价",
-      "readiness": "待填写地址",
+      "readiness": "需试运行",
       "config": {
         "provider": "BandwagonHost",
         "name": "MiniBOX",
         "adapter": "whmcs",
         "expected_text": "MiniBOX",
+        "url": "https://bandwagonhost.com/cart.php",
+        "purchase_url": "https://bandwagonhost.com/cart.php",
+        "in_stock": ["Order Now", "立即订购", "有货"],
+        "out_of_stock": ["Out of Stock", "Sold Out", "缺货", "售罄", "无货"],
+        "mirror_aliases": ["minibox"],
         "price_note": "约 27–29 USD/年（历史活动参考）",
-        "notes": "待当前官方活动链接，不使用正价 E-Commerce 库存代替。"
+        "notes": "已填搬瓦工 WHMCS 产品目录。MiniBOX 属历史活动机型，目录中可能无当前批次；试运行时若官网被拦截，会改用聚合站按别名匹配。启用前请核对页面产品名，不使用正价 E-Commerce 库存代替。"
       }
     },
     {

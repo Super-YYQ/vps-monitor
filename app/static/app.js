@@ -497,11 +497,16 @@ $("#probe").addEventListener("click", () =>
     const node = $("#probe-result");
     node.hidden = false;
     node.textContent = "正在读取商家页面并验证规则…";
-    const r = await api("/probe", {
-      method: "POST",
-      body: JSON.stringify(readMonitor()),
-    });
-    node.textContent = `${names[r.status]}：${r.reason}${r.latency ? `（${r.latency} ms）` : ""}`;
+    try {
+      const r = await api("/probe", {
+        method: "POST",
+        body: JSON.stringify(readMonitor()),
+      });
+      node.textContent = `${names[r.status] || r.status}：${r.reason}${r.latency ? `（${r.latency} ms）` : ""}`;
+    } catch (error) {
+      node.textContent = error.message;
+      throw error;
+    }
   }),
 );
 $("#mail-form").addEventListener("submit", async (event) => {
