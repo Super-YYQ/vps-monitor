@@ -245,6 +245,18 @@
                     /></label>
                   </div>
                 </section>
+                <section class="panel settings-card">
+                  <h2>镜像源（多源轮询）</h2>
+                  <p class="muted">
+                    商家官网被 Cloudflare 拦截时，自动改用 VPS 聚合站（VPS 值得买、HostMonit）获取库存数据。
+                    默认 10 分钟间隔，避免对聚合站造成压力。
+                  </p>
+                  <label class="switch-row"
+                    ><span>启用镜像源</span
+                    ><input id="mirror-toggle" type="checkbox"
+                  /></label>
+                  <p class="help">关闭后，仅使用商家官网检测；Cloudflare 拦截时将显示错误。</p>
+                </section>
                 <form id="password-form" class="panel settings-card">
                   <h2>管理员密码</h2>
                   <label

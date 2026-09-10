@@ -135,32 +135,56 @@ def discover_whmcs(page: Page):
     return items[:100]
 
 
-def inspect_monitor(config: Monitor, fetch):
-    """Follow an exact WHMCS product card; never claim stock based on Order Now alone."""
+def inspect_monitor(config: Monitor, fetch, mirror=None):
+    """Follow an exact WHMCS product card; never claim stock based on Order Now alone.
+
+    ``mirror`` is an optional callable ``(config, fetch) -> Result | None`` used
+    as a fallback when the vendor page is Cloudflare-blocked (aggregator sites).
+    """
+
     page = fetch(config.url)
     if config.adapter != "whmcs" or parse_qs(urlsplit(config.url).query).get("pid"):
-        return detect(config, page)
-    initial = detect(config, page)
-    if initial.status == "error" or "验证" in initial.reason or "登录" in initial.reason:
-        return initial
-    soup = BeautifulSoup(page.text, "html.parser")
-    matching = []
-    for card in soup.select(".product"):
-        heading = card.select_one("h3, h4, .product-name")
-        if heading and normalize(heading.get_text(" ", strip=True)) == normalize(config.expected_text):
-            matching.append(card)
-    if len(matching) != 1:
-        return Result("unknown", "目录中未找到唯一目标机型；请核对名称或填写商品 PID", page.latency)
-    card_text = normalize(matching[0].get_text(" ", strip=True))
-    if any(normalize(term) in card_text for term in config.out_of_stock):
-        return Result("out_of_stock", "目标商品卡片明确标注缺货", page.latency)
-    items = [
-        item for item in discover_whmcs(page) if normalize(item["name"]) == normalize(config.expected_text)
-    ]
-    if len(items) != 1:
-        return Result("unknown", "没有唯一商品 PID，不能仅凭 Order Now 判为有货", page.latency)
-    import time
+        result = detect(config, page)
+    else:
+        initial = detect(config, page)
+        if initial.status == "error" or "验证" in initial.reason or "登录" in initial.reason:
+            result = initial
+        else:
+            soup = BeautifulSoup(page.text, "html.parser")
+            matching = []
+            for card in soup.select(".product"):
+                heading = card.select_one("h3, h4, .product-name")
+                if heading and normalize(heading.get_text(" ", strip=True)) == normalize(config.expected_text):
+                    matching.append(card)
+            if len(matching) != 1:
+                result = Result("unknown", "目录中未找到唯一目标机型；请核对名称或填写商品 PID", page.latency)
+            else:
+                card_text = normalize(matching[0].get_text(" ", strip=True))
+                if any(normalize(term) in card_text for term in config.out_of_stock):
+                    result = Result("out_of_stock", "目标商品卡片明确标注缺货", page.latency)
+                else:
+                    items = [
+                        item for item in discover_whmcs(page) if normalize(item["name"]) == normalize(config.expected_text)
+                    ]
+                    if len(items) != 1:
+                        result = Result("unknown", "没有唯一商品 PID，不能仅凭 Order Now 判为有货", page.latency)
+                    else:
+                        import time
+                        time.sleep(5)
+                        direct = config.model_copy(update={"url": items[0]["url"]})
+                        result = detect(direct, fetch(direct.url))
 
-    time.sleep(5)
-    direct = config.model_copy(update={"url": items[0]["url"]})
-    return detect(direct, fetch(direct.url))
+    # Mirror fallback: aggregator data when the vendor page is Cloudflare-blocked.
+    if (
+        mirror
+        and config.adapter == "whmcs"
+        and result.status == "error"
+        and "cloudflare" in result.reason.lower()
+    ):
+        try:
+            mirrored = mirror(config, fetch)
+        except Exception:
+            mirrored = None
+        if mirrored is not None:
+            return mirrored
+    return result

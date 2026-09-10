@@ -339,6 +339,11 @@ async function setView(view) {
   if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
   if (view === "notifications") await loadNotifications();
   if (view === "mail") await loadMail();
+  if (view === "settings") await loadSettings();
+}
+async function loadSettings() {
+  const mirror = await api("/settings/mirror");
+  $("#mirror-toggle").checked = mirror.enabled;
 }
 function openMonitor(config = {}, id = null) {
   state.editing = id;
@@ -534,6 +539,13 @@ $("#password-form").addEventListener("submit", async (event) => {
     showLogin();
     toast("密码已更新，请重新登录");
   });
+});
+$("#mirror-toggle").addEventListener("change", async (event) => {
+  await api("/settings/mirror", {
+    method: "PUT",
+    body: JSON.stringify({ enabled: event.target.checked }),
+  });
+  toast(event.target.checked ? "镜像源已启用" : "镜像源已关闭");
 });
 $("#export").addEventListener("click", () =>
   busy($("#export"), async () => {

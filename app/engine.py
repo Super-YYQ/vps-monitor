@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from app.detectors import Result, inspect_monitor
 from app.fetcher import fetch_page
 from app.mailer import mail_error, send_mail
+from app.mirror import mirror_result
 from app.models import MailSettings, Monitor
 
 logger = logging.getLogger(__name__)
@@ -94,11 +95,15 @@ class Engine:
         raw["password"] = self.vault.decrypt(raw.get("password", ""))
         return MailSettings.model_validate(raw)
 
+    def mirror_enabled(self):
+        return self.db.setting("mirror", {}).get("enabled", True)
+
     async def check(self, row):
         try:
             config = Monitor.model_validate(row["config"])
+            mirror = mirror_result if self.mirror_enabled() else None
             try:
-                result = await asyncio.to_thread(inspect_monitor, config, self.fetch)
+                result = await asyncio.to_thread(inspect_monitor, config, self.fetch, mirror)
             except ValueError as exc:
                 result = Result("unknown", str(exc)[:300])
             except Exception:

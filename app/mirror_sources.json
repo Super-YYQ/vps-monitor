@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "id": "vpszdm",
+      "name": "VPS 值得买",
+      "url": "https://stock.vpszdm.com/",
+      "note": "中文 VPS 补货聚合站"
+    },
+    {
+      "id": "hostmonit",
+      "name": "HostMonit",
+      "url": "https://stock.hostmonit.com/",
+      "note": "英文 VPS 补货聚合站"
+    }
+  ],
+  "note": "镜像源仅在商家官网被 Cloudflare 人机验证拦截时兜底使用，是否启用由面板「系统设置 → 镜像源」开关控制（settings 表 key=mirror）。新增镜像源需验证其页面包含商家名与产品名。"
+}

@@ -20,6 +20,7 @@ from app.detectors import discover_whmcs, inspect_monitor
 from app.engine import Engine
 from app.fetcher import fetch_page
 from app.mail_profiles import MailProfiles
+from app.mirror import mirror_result
 from app.models import MailProfile, MailSettings, Monitor, public_url
 from app.security import InstanceLock, Vault, password_hash, password_matches, token_hash
 
@@ -271,6 +272,16 @@ def create_app(data_dir=None, start_engine=True):
                 existing.add(key)
         return ids
 
+    @app.get("/api/settings/mirror")
+    async def get_mirror():
+        return database.setting("mirror", {"enabled": True})
+
+    @app.put("/api/settings/mirror")
+    async def save_mirror(payload: dict):
+        enabled = bool(payload.get("enabled", True))
+        database.set_setting("mirror", {"enabled": enabled})
+        return {"ok": True, "enabled": enabled}
+
     @app.post("/api/monitors", status_code=201)
     async def add_monitor(config: Monitor):
         return {"ids": insert_monitors([config])}
@@ -348,8 +359,9 @@ def create_app(data_dir=None, start_engine=True):
         rate_limit(sensitive_calls, "probe:" + request.state.session["token"], 6, 60)
         if not config.url:
             raise HTTPException(400, "请填写检测地址")
+        mirror = mirror_result if database.setting("mirror", {"enabled": True}).get("enabled") else None
         try:
-            return vars(await asyncio.to_thread(inspect_monitor, config, fetch_page))
+            return vars(await asyncio.to_thread(inspect_monitor, config, fetch_page, mirror))
         except ValueError as exc:
             return {"status": "unknown", "reason": str(exc), "latency": 0}
         except Exception:
