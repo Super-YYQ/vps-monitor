@@ -26,6 +26,7 @@ class Monitor(BaseModel):
     selector: str = Field(default="", max_length=300)
     product_match: str = Field(default="", max_length=160)
     expected_text: str = Field(default="", max_length=160)
+    mirror_aliases: list[str] = Field(default_factory=list, max_length=10)
     in_stock: list[str] = Field(default_factory=lambda: ["In Stock", "有货"], max_length=20)
     out_of_stock: list[str] = Field(
         default_factory=lambda: ["Out of Stock", "Sold Out", "缺货", "售罄"], max_length=20
@@ -59,6 +60,13 @@ class Monitor(BaseModel):
         if not value or any(not term.strip() or len(term) > 200 for term in value):
             raise ValueError("库存标记不能为空，每个不超过 200 字符")
         return [term.strip() for term in value]
+
+    @field_validator("mirror_aliases")
+    @classmethod
+    def aliases_valid(cls, value):
+        if any(not alias.strip() or len(alias) > 160 for alias in value):
+            raise ValueError("镜像别名不能为空，每个不超过 160 字符")
+        return [alias.strip() for alias in value]
 
     @model_validator(mode="after")
     def configuration_valid(self):

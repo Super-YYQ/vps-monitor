@@ -96,22 +96,27 @@ def _result_from_page(config, page, label):
     from app.detectors import Result, normalize
 
     provider = normalize(config.provider)
-    product = normalize(config.name)
+    # Aggregator sites use their own naming (e.g. "tri basic" for
+    # "US.LA.TRI.Basic"); aliases cover those variants.
+    needles = [normalize(config.name)] + [normalize(a) for a in config.mirror_aliases]
+    needles = [n for n in needles if n]
     soup = BeautifulSoup(page.text, "html.parser")
     for element in soup.select("script, style, template, noscript, [hidden], [aria-hidden='true']"):
         element.decompose()
     text = normalize(soup.get_text(" ", strip=True))
     if provider not in text:
         return None
-    index = text.find(product)
-    if index < 0:
-        return None
-    context = text[max(0, index - 80) : index + len(product) + 160]
-    if any(normalize(term) in context for term in config.out_of_stock):
-        return Result("out_of_stock", f"聚合站 {label} 显示缺货（官网 Cloudflare 拦截备用源）", page.latency)
-    if any(normalize(term) in context for term in config.in_stock):
-        return Result("in_stock", f"聚合站 {label} 显示有货（官网 Cloudflare 拦截备用源）", page.latency)
-    return Result("unknown", f"聚合站 {label} 找到产品但无明确库存标记", page.latency)
+    for needle in needles:
+        index = text.find(needle)
+        if index < 0:
+            continue
+        context = text[max(0, index - 80) : index + len(needle) + 160]
+        if any(normalize(term) in context for term in config.out_of_stock):
+            return Result("out_of_stock", f"聚合站 {label} 显示缺货（官网 Cloudflare 拦截备用源）", page.latency)
+        if any(normalize(term) in context for term in config.in_stock):
+            return Result("in_stock", f"聚合站 {label} 显示有货（官网 Cloudflare 拦截备用源）", page.latency)
+        return Result("unknown", f"聚合站 {label} 找到产品但无明确库存标记", page.latency)
+    return None
 
 
 _DEFAULT_POLLER = MirrorPoller()

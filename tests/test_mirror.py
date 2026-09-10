@@ -220,3 +220,57 @@ def test_poller_shares_cache_across_monitors(whmcs_config, sources):
     assert mirror_result(whmcs_config, fetch, poller=poller).status == "in_stock"
     assert mirror_result(other, fetch, poller=poller).status == "in_stock"
     assert len(calls) == 1
+
+
+def test_mirror_matches_via_alias(whmcs_config, sources):
+    # Aggregator sites use their own naming (e.g. "tri basic" instead of
+    # "US.LA.TRI.Basic"); configured aliases let the mirror still match.
+    config = whmcs_config.model_copy(
+        update={"provider": "VMISS", "name": "US.LA.TRI.Basic", "mirror_aliases": ["tri basic"]}
+    )
+
+    def fetch(url):
+        if url.startswith("https://mirror.example"):
+            return Page(
+                200,
+                "<html><body><p>vmiss 洛杉矶 tri basic ❌ 无货 Out of Stock</p></body></html>",
+                url,
+                30,
+            )
+        return challenge_page(url)
+
+    result = mirror_result(config, fetch, sources)
+    assert result is not None and result.status == "out_of_stock" and "聚合站" in result.reason
+
+
+def test_mirror_alias_context_window_centers_on_alias(whmcs_config, sources):
+    # The stock marker check uses the text window around the alias, so a
+    # marker next to the alias is found even when the official name is absent.
+    def fetch(url):
+        if url.startswith("https://mirror.example"):
+            return Page(
+                200,
+                "<html><body><p>dmit 洛杉矶pro-lax.an5.pro.tiny $14.9/月 缺货 Sold Out</p>"
+                "<p>" + "填充 " * 100 + "</p></body></html>",
+                url,
+                30,
+            )
+        return challenge_page(url)
+
+    result = mirror_result(whmcs_config.model_copy(update={"mirror_aliases": ["an5.pro.tiny"]}), fetch, sources)
+    assert result is not None and result.status == "out_of_stock"
+
+
+def test_mirror_without_alias_still_no_match(whmcs_config, sources):
+    # Without a configured alias, the aggregator's own naming must NOT match.
+    def fetch(url):
+        if url.startswith("https://mirror.example"):
+            return Page(
+                200,
+                "<html><body><p>vmiss 洛杉矶 tri basic ❌ 无货 Out of Stock</p></body></html>",
+                url,
+                30,
+            )
+        return challenge_page(url)
+
+    assert mirror_result(whmcs_config, fetch, sources) is None

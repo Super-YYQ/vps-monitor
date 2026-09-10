@@ -47,6 +47,7 @@ const defaults = {
   selector: "",
   product_match: "",
   expected_text: "",
+  mirror_aliases: [],
   in_stock: ["In Stock", "有货"],
   out_of_stock: ["Out of Stock", "Sold Out", "缺货", "售罄"],
   json_path: "",
@@ -379,7 +380,7 @@ function readMonitor() {
     c = {};
   Object.keys(defaults).forEach((key) => {
     const input = form.elements.namedItem(key);
-    if (["in_stock", "out_of_stock"].includes(key))
+    if (["in_stock", "out_of_stock", "mirror_aliases"].includes(key))
       c[key] = input.value
         .split("\n")
         .map((x) => x.trim())
